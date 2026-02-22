@@ -2,10 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0f1a" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <title>Tip Split</title>
 
   <style>
@@ -19,12 +17,12 @@
       --brand:#3b82f6;
       --good:#22c55e;
       --bad:#fb7185;
-      --tap:50px;
+      --tap:52px;
       --r:18px;
       --shadow: 0 12px 34px rgba(0,0,0,.45);
       font-family:-apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
-    *{ box-sizing:border-box; }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     body{
       margin:0;
       color:var(--text);
@@ -33,23 +31,32 @@
         radial-gradient(900px 600px at 120% 0%, rgba(34,197,94,.16), transparent 60%),
         linear-gradient(180deg, var(--bg), #05070d 60%, #04060b);
       min-height:100vh;
+      /* Prevent iOS from zooming on input focus */
+      -webkit-text-size-adjust: 100%;
     }
 
     header{
       position:sticky; top:0; z-index:20;
       padding:14px 16px 10px;
-      background: rgba(7,10,18,.72);
+      /* Safe area for iPhone notch */
+      padding-top: calc(14px + env(safe-area-inset-top));
+      background: rgba(7,10,18,.92);
       backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--line);
     }
     .titleRow{
-      display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
-      max-width:980px; margin:0 auto;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
     }
     h1{ margin:0; font-size:18px; letter-spacing:.2px; }
-    .tiny{ color:var(--muted); font-size:12px; line-height:1.2; text-align:right; }
+    .tiny{ color:var(--muted); font-size:11px; line-height:1.3; text-align:right; }
 
-    .wrap{ max-width:980px; margin:0 auto; padding:16px; }
+    .wrap{
+      max-width:700px;
+      margin:0 auto;
+      padding:12px 12px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
 
     .shell{
       border:1px solid var(--line);
@@ -59,29 +66,42 @@
       overflow:hidden;
     }
 
+    /* ===== TOP GRID: always single column on mobile ===== */
     .gridTop{
       padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    /* Two-column row for hours + mode on wider screens */
+    .gridRow2{
       display:grid;
-      grid-template-columns: 1fr 1.1fr 1.1fr .9fr;
-      gap:10px;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
     }
 
-    @media (max-width:860px){
-      .gridTop{ grid-template-columns: 1fr 1fr; }
-      .tiny{ text-align:left; }
+    label{
+      display:block;
+      font-size:13px;
+      font-weight:600;
+      color:var(--muted);
+      margin:0 0 6px;
     }
 
-    label{ display:block; font-size:12px; color:var(--muted); margin:0 0 6px; }
     input, select{
       width:100%;
       height:var(--tap);
-      padding:0 12px;
+      padding:0 14px;
       border-radius: 14px;
       border:1px solid var(--line);
       background: rgba(15,21,38,.9);
       color: var(--text);
       outline:none;
+      /* CRITICAL for iPhone: font-size must be 16px+ to prevent auto-zoom */
       font-size:16px;
+      -webkit-appearance: none;
+      appearance: none;
     }
     input::placeholder{ color:rgba(238,242,255,.35); }
     input:focus, select:focus{
@@ -89,10 +109,24 @@
       box-shadow: 0 0 0 3px rgba(59,130,246,.18);
     }
 
+    /* Select arrow */
+    select{
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(238,242,255,.5)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
     .btnRow{
       padding:0 14px 14px;
-      display:flex; gap:10px; flex-wrap:wrap;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
     }
+    .btnRow .primary{
+      grid-column: 1 / -1; /* Full width */
+    }
+
     button{
       height:var(--tap);
       padding:0 14px;
@@ -103,13 +137,17 @@
       font-size:15px;
       font-weight:700;
       cursor:pointer;
-      flex:1;
-      min-width:150px;
-      transition: filter .12s ease, transform .03s ease;
+      transition: filter .12s ease, transform .06s ease;
+      /* Prevent tiny text on iOS */
+      -webkit-appearance: none;
+      appearance: none;
+      /* Touch feedback */
+      touch-action: manipulation;
     }
     button.primary{
       background: linear-gradient(180deg, rgba(59,130,246,.95), rgba(59,130,246,.7));
       border-color: rgba(59,130,246,.75);
+      font-size:17px;
     }
     button.ghost{
       background: rgba(15,21,38,.7);
@@ -119,22 +157,25 @@
       border-color: rgba(251,113,133,.22);
       color: rgba(255,225,231,.95);
     }
-    button:active{ transform: scale(.99); }
-    button:hover{ filter: brightness(1.06); }
+    button:active{ transform: scale(.97); filter: brightness(.95); }
 
+    /* ===== Table ===== */
     .table{
       border-top:1px solid var(--line);
     }
     .thead, .trow{
       display:grid;
-      grid-template-columns: 1.35fr .65fr .7fr;
-      gap:10px;
-      padding:12px 14px;
+      grid-template-columns: 1fr 80px 90px;
+      gap:8px;
+      padding:10px 12px;
       align-items:center;
     }
     .thead{
       color: var(--muted);
-      font-size:12px;
+      font-size:11px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.5px;
       background: rgba(255,255,255,.02);
       border-bottom:1px solid var(--line);
     }
@@ -143,16 +184,25 @@
     }
     .trow:last-child{ border-bottom:none; }
 
-    .nameCell{ display:flex; gap:10px; align-items:center; min-width:0; }
+    .nameCell{ display:flex; gap:8px; align-items:center; min-width:0; }
     .miniBtn{
-      width:42px; height:42px;
+      width:40px; height:40px; min-width:40px;
       border-radius: 12px;
       border:1px solid var(--line);
       background: rgba(7,10,18,.6);
       color: rgba(238,242,255,.85);
-      font-size:18px;
+      font-size:20px;
       line-height:1;
       flex:0 0 auto;
+      touch-action: manipulation;
+    }
+
+    /* Row inputs — slightly smaller height to fit better */
+    .trow input{
+      height:42px;
+      font-size:16px;
+      padding:0 10px;
+      border-radius:12px;
     }
 
     .payPill{
@@ -166,18 +216,20 @@
       font-weight:900;
       letter-spacing:.2px;
       font-variant-numeric: tabular-nums;
+      font-size:15px;
     }
     .payPill.ready{
       border-color: rgba(34,197,94,.28);
       box-shadow: 0 0 0 3px rgba(34,197,94,.08);
     }
 
+    /* ===== Summary ===== */
     .summary{
       border-top:1px solid var(--line);
       background: rgba(0,0,0,.12);
-      padding:14px;
+      padding:12px;
       display:grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap:10px;
     }
     .box{
@@ -185,27 +237,23 @@
       background: rgba(15,21,38,.75);
       border-radius: 16px;
       padding:12px;
-      min-height:74px;
+      min-height:68px;
     }
-    .box .k{ color:var(--muted); font-size:12px; margin-bottom:6px; }
+    .box.wide{ grid-column: 1 / -1; }
+    .box .k{ color:var(--muted); font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase; letter-spacing:.4px; }
     .box .v{
-      font-size:18px;
+      font-size:20px;
       font-weight:900;
       font-variant-numeric: tabular-nums;
     }
     .ok{ color:var(--good); font-weight:900; }
     .no{ color:var(--bad); font-weight:900; }
 
-    @media (max-width:860px){
-      .summary{ grid-template-columns: 1fr 1fr; }
-      .thead,.trow{ grid-template-columns: 1.25fr .75fr .8fr; }
-    }
-
     .foot{
-      padding:14px;
+      padding:12px 14px;
       color: var(--muted);
-      font-size:12px;
-      line-height:1.35;
+      font-size:11px;
+      line-height:1.5;
       border-top:1px solid rgba(255,255,255,.06);
     }
     .kbd{
@@ -218,59 +266,62 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* ===== Manage Names Modal (added) ===== */
+    /* ===== Modal ===== */
     .modal{
       position:fixed;
       inset:0;
-      background: rgba(0,0,0,.6);
+      background: rgba(0,0,0,.65);
       display:none;
-      align-items:center;
+      align-items:flex-end;
       justify-content:center;
       z-index:999;
-      padding:16px;
+      padding:0;
     }
+    /* Sheet-style on mobile */
     .modalCard{
       width:100%;
-      max-width:520px;
-      max-height:75vh;
+      max-width:600px;
+      max-height:80vh;
       overflow:auto;
-      border-radius: 18px;
+      border-radius: 22px 22px 0 0;
       border:1px solid var(--line);
-      background: rgba(15,21,38,.96);
+      border-bottom:none;
+      background: rgba(15,21,38,.98);
       box-shadow: var(--shadow);
-      padding:14px;
+      padding:16px;
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
     }
     .modalHead{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      margin-bottom:10px;
+      margin-bottom:12px;
     }
     .modalTitle{
       margin:0;
       font-size:16px;
-      letter-spacing:.2px;
+      font-weight:700;
     }
     .modalRow{
       display:flex;
       gap:10px;
       align-items:center;
       justify-content:space-between;
-      padding:10px;
+      padding:12px;
       border:1px solid rgba(255,255,255,.06);
       border-radius:14px;
-      margin-bottom:10px;
+      margin-bottom:8px;
       background: rgba(7,10,18,.35);
     }
     .nameText{
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
-      max-width: 70%;
+      flex:1;
       color: rgba(238,242,255,.92);
       font-weight:700;
-      font-size:14px;
+      font-size:15px;
     }
     .iconBtn{
       height:42px;
@@ -286,21 +337,29 @@
       display:flex;
       align-items:center;
       justify-content:center;
+      font-size:18px;
+      flex-shrink:0;
+      touch-action:manipulation;
     }
     .modalActions{
-      display:flex;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
       gap:10px;
-      margin-top:12px;
-      flex-wrap:wrap;
-    }
-    .modalActions button{
-      min-width: 200px;
-      flex:1;
+      margin-top:14px;
     }
     .mutedSmall{
       color: var(--muted);
       font-size:12px;
-      line-height:1.25;
+      line-height:1.4;
+      margin-bottom:10px;
+    }
+
+    /* Handle bar for sheet */
+    .sheetHandle{
+      width:40px; height:4px;
+      border-radius:999px;
+      background: rgba(255,255,255,.18);
+      margin: 0 auto 14px;
     }
   </style>
 </head>
@@ -310,11 +369,11 @@
   <div class="titleRow">
     <div>
       <h1>Tip Split</h1>
-      <div class="tiny">Whole dollars only • iPhone-friendly • Works offline</div>
+      <div style="color:var(--muted);font-size:11px;margin-top:2px;">Whole dollars • Works offline</div>
     </div>
     <div class="tiny">
-      Extra rule: <span class="kbd">Top Hours</span><br/>
-      Ties split evenly, leftover $1s random
+      <span style="color:var(--muted);">Extra $:</span><br/>
+      Top Hours / Ties split
     </div>
   </div>
 </header>
@@ -322,22 +381,26 @@
 <div class="wrap">
   <div class="shell">
     <div class="gridTop">
+      <!-- Total tips: full width, big and easy to tap -->
       <div>
         <label>Total Tips ($)</label>
-        <input id="totalTips" inputmode="numeric" pattern="[0-9]*" placeholder="270" />
+        <input id="totalTips" inputmode="numeric" pattern="[0-9]*" placeholder="270" autocomplete="off" />
       </div>
 
-      <div>
-        <label>Quick Add Name (autocomplete)</label>
-        <input id="quickName" list="nameSuggestions" placeholder="Start typing…" />
-        <datalist id="nameSuggestions"></datalist>
+      <!-- Name + Hours side by side -->
+      <div class="gridRow2">
+        <div>
+          <label>Name</label>
+          <input id="quickName" list="nameSuggestions" placeholder="Name…" autocomplete="off" />
+          <datalist id="nameSuggestions"></datalist>
+        </div>
+        <div>
+          <label>Hours</label>
+          <input id="quickHours" inputmode="decimal" placeholder="8.5" autocomplete="off" />
+        </div>
       </div>
 
-      <div>
-        <label>Hours</label>
-        <input id="quickHours" inputmode="decimal" placeholder="8.5" />
-      </div>
-
+      <!-- Extra mode: full width -->
       <div>
         <label>Extra Money Option</label>
         <select id="extraMode">
@@ -350,7 +413,7 @@
 
     <div class="btnRow">
       <button class="primary" id="calcBtn">Calculate</button>
-      <button class="ghost" id="addBtn">Add Person</button>
+      <button class="ghost" id="addBtn">+ Add Person</button>
       <button class="ghost" id="manageNamesBtn">Manage Names</button>
       <button class="danger" id="resetBtn">Reset</button>
     </div>
@@ -359,7 +422,7 @@
       <div class="thead">
         <div>Name</div>
         <div>Hours</div>
-        <div>Final Pay</div>
+        <div>Pay</div>
       </div>
       <div id="rows"></div>
     </div>
@@ -378,38 +441,39 @@
         <div class="v" id="sumPay">$0</div>
       </div>
       <div class="box">
-        <div class="k">Unassigned (if “Do nothing”)</div>
+        <div class="k">Unassigned</div>
         <div class="v" id="unassigned">$0</div>
       </div>
-      <div class="box" style="grid-column:1/-1;">
+      <div class="box wide">
         <div class="k">Status</div>
         <div class="v" id="status"><span class="no">Waiting</span></div>
       </div>
     </div>
 
     <div class="foot">
-      Quick Add: type name → <span class="kbd">Enter</span> → type hours → <span class="kbd">Enter</span>. New names auto-save.
-      Recalculate reshuffles random tie-breaks when needed.
+      Type name → tap <span class="kbd">Hours</span> field → tap <span class="kbd">+ Add Person</span>.<br/>
+      New names save automatically for autocomplete.
     </div>
   </div>
 </div>
 
-<!-- ===== Manage Names Modal (added) ===== -->
+<!-- Manage Names Modal (bottom sheet on iPhone) -->
 <div class="modal" id="namesModal" aria-hidden="true">
   <div class="modalCard" role="dialog" aria-modal="true" aria-label="Manage Names">
+    <div class="sheetHandle"></div>
     <div class="modalHead">
       <h3 class="modalTitle">Manage Saved Names</h3>
       <button class="iconBtn" id="closeNamesBtn" title="Close">×</button>
     </div>
 
-    <div class="mutedSmall" style="margin-bottom:10px;">
-      These names are saved on this phone (localStorage). Delete any typos to clean up autocomplete.
+    <div class="mutedSmall">
+      Saved names appear in autocomplete. Delete any typos to clean up.
     </div>
 
     <div id="namesList"></div>
 
     <div class="modalActions">
-      <button class="ghost" id="clearNamesBtn">Clear All Saved Names</button>
+      <button class="ghost" id="clearNamesBtn">Clear All</button>
       <button class="primary" id="doneNamesBtn">Done</button>
     </div>
   </div>
@@ -438,7 +502,7 @@
     return arr;
   }
 
-  // ====== Saved names (autocomplete) ======
+  // ====== Saved names ======
   function loadSavedNames(){
     try {
       const raw = localStorage.getItem(LS_NAMES);
@@ -446,7 +510,6 @@
       return Array.isArray(arr) ? arr : [];
     } catch { return []; }
   }
-
   function saveNames(names){
     const clean = Array.from(new Set(names.map(s => String(s).trim()).filter(Boolean)))
       .sort((a,b)=>a.localeCompare(b));
@@ -454,7 +517,6 @@
     renderNameDatalist(clean);
     return clean;
   }
-
   function addNameToSaved(name){
     const n = String(name).trim();
     if (!n) return;
@@ -462,19 +524,16 @@
     names.push(n);
     saveNames(names);
   }
-
   function removeSavedName(name){
     const n = String(name).trim();
     if (!n) return;
     const names = loadSavedNames().filter(x => x !== n);
     saveNames(names);
   }
-
   function clearSavedNames(){
     localStorage.setItem(LS_NAMES, JSON.stringify([]));
     renderNameDatalist([]);
   }
-
   function renderNameDatalist(names){
     const dl = $("nameSuggestions");
     dl.innerHTML = "";
@@ -488,15 +547,15 @@
   // ====== People list ======
   const peopleDefault = [
     { name: "John Roro", hours: 7.5 },
-    { name: "Brandon", hours: 8.5 },
-    { name: "Ryan", hours: 8.5 },
-    { name: "Ty", hours: 7.5 },
-    { name: "Matt S", hours: 15.5 },
-    { name: "Will", hours: 8.5 },
-    { name: "Angel", hours: 8.5 },
-    { name: "Hunter", hours: 8.5 },
-    { name: "Mason", hours: 8.0 },
-    { name: "Matt M", hours: 8.5 },
+    { name: "Brandon",   hours: 8.5 },
+    { name: "Ryan",      hours: 8.5 },
+    { name: "Ty",        hours: 7.5 },
+    { name: "Matt S",    hours: 15.5 },
+    { name: "Will",      hours: 8.5 },
+    { name: "Angel",     hours: 8.5 },
+    { name: "Hunter",    hours: 8.5 },
+    { name: "Mason",     hours: 8.0 },
+    { name: "Matt M",    hours: 8.5 },
   ];
 
   function loadPeople(){
@@ -505,26 +564,21 @@
       const arr = raw ? JSON.parse(raw) : null;
       if (!Array.isArray(arr) || arr.length === 0) return peopleDefault;
       return arr.map(p => ({ name: String(p.name ?? ""), hours: toNum(p.hours) }));
-    } catch {
-      return peopleDefault;
-    }
+    } catch { return peopleDefault; }
   }
-
-  function savePeople(){
-    localStorage.setItem(LS_PEOPLE, JSON.stringify(people));
-  }
+  function savePeople(){ localStorage.setItem(LS_PEOPLE, JSON.stringify(people)); }
 
   let people = loadPeople();
 
-  // ===== Rendering rows =====
+  // ===== Render rows =====
   function renderRows(finalPays = null){
     const rows = $("rows");
     rows.innerHTML = "";
-
     people.forEach((p, i) => {
       const row = document.createElement("div");
       row.className = "trow";
 
+      // Name cell
       const nameCell = document.createElement("div");
       nameCell.className = "nameCell";
 
@@ -542,18 +596,22 @@
       nameInput.value = p.name;
       nameInput.list = "nameSuggestions";
       nameInput.placeholder = "Name";
+      nameInput.autocomplete = "off";
       nameInput.oninput = (e) => { people[i].name = e.target.value; savePeople(); };
       nameInput.onblur = () => { addNameToSaved(nameInput.value); };
 
       nameCell.appendChild(del);
       nameCell.appendChild(nameInput);
 
+      // Hours
       const hoursInput = document.createElement("input");
       hoursInput.value = String(p.hours ?? "");
-      hoursInput.placeholder = "Hours";
+      hoursInput.placeholder = "Hrs";
       hoursInput.inputMode = "decimal";
+      hoursInput.autocomplete = "off";
       hoursInput.oninput = (e) => { people[i].hours = toNum(e.target.value); savePeople(); };
 
+      // Pay pill
       const payPill = document.createElement("div");
       payPill.className = "payPill" + (finalPays ? " ready" : "");
       payPill.textContent = finalPays ? money0(finalPays[i] || 0) : "—";
@@ -561,7 +619,6 @@
       row.appendChild(nameCell);
       row.appendChild(hoursInput);
       row.appendChild(payPill);
-
       rows.appendChild(row);
     });
   }
@@ -578,36 +635,21 @@
     }
   }
 
-  // OLD WAY (requested):
-  // Extra dollars go to whoever worked the MOST hours.
-  // If there are ties for most hours, extras split evenly among them.
-  // If remainder after even split, distribute remaining $1s randomly among the tied group.
   function allocateExtrasTopHoursSplit(finalPay, hoursArr, eligibleIdxs, extras){
     if (extras <= 0) return;
-
     let maxH = -Infinity;
     for (const i of eligibleIdxs) maxH = Math.max(maxH, hoursArr[i]);
-
     const top = eligibleIdxs.filter(i => hoursArr[i] === maxH);
     if (top.length === 0) return;
-
     const each = Math.floor(extras / top.length);
-    if (each > 0){
-      for (const i of top) finalPay[i] += each;
-      extras -= each * top.length;
-    }
-
-    if (extras > 0){
-      const picks = shuffle(top.slice()).slice(0, extras);
-      for (const i of picks) finalPay[i] += 1;
-    }
+    if (each > 0){ for (const i of top) finalPay[i] += each; extras -= each * top.length; }
+    if (extras > 0){ const picks = shuffle(top.slice()).slice(0, extras); for (const i of picks) finalPay[i] += 1; }
   }
 
-  // ===== Calculation =====
+  // ===== Calculate =====
   function calculate(){
     const totalTips = Math.round(toNum($("totalTips").value));
     const mode = $("extraMode").value;
-
     const hoursArr = people.map(p => toNum(p.hours));
     const sumHours = hoursArr.reduce((a,b)=>a+b,0);
 
@@ -621,35 +663,21 @@
       return;
     }
 
-    // Grow the autocomplete list automatically
     people.forEach(p => addNameToSaved(p.name));
-
     const rate = totalTips / sumHours;
-
-    // Base pay: floor(exact). NO CENTS EVER.
     const exact = hoursArr.map(h => h * rate);
     const base = exact.map(x => Math.floor(x));
-
     const baseSum = base.reduce((a,b)=>a+b,0);
-    let extras = totalTips - baseSum; // whole dollars left over
-
+    let extras = totalTips - baseSum;
     const finalPay = base.slice();
 
-    // Eligible = hours > 0 AND name not blank
     const eligibleIdxs = people
       .map((p,i)=>({p,i}))
       .filter(x => toNum(x.p.hours) > 0 && String(x.p.name).trim() !== "")
       .map(x => x.i);
 
-    if (mode === "none"){
-      // do nothing: extras remain unassigned
-    } else if (mode === "random"){
-      allocateExtrasRandom(finalPay, eligibleIdxs, extras);
-      extras = 0;
-    } else if (mode === "tophours"){
-      allocateExtrasTopHoursSplit(finalPay, hoursArr, eligibleIdxs, extras);
-      extras = 0;
-    }
+    if (mode === "random"){ allocateExtrasRandom(finalPay, eligibleIdxs, extras); extras = 0; }
+    else if (mode === "tophours"){ allocateExtrasTopHoursSplit(finalPay, hoursArr, eligibleIdxs, extras); extras = 0; }
 
     const sumPay = finalPay.reduce((a,b)=>a+b,0);
 
@@ -659,7 +687,7 @@
     $("unassigned").textContent = money0(Math.max(0, totalTips - sumPay));
 
     if (sumPay === totalTips){
-      $("status").innerHTML = `<span class="ok">Perfect (${money0(totalTips)})</span>`;
+      $("status").innerHTML = `<span class="ok">✓ Perfect — ${money0(totalTips)} assigned</span>`;
     } else {
       $("status").innerHTML = `<span class="no">Not fully assigned (${money0(totalTips - sumPay)} left)</span>`;
     }
@@ -672,11 +700,9 @@
     const n = $("quickName").value.trim();
     const h = toNum($("quickHours").value);
     if (!n || h <= 0) return;
-
     people.push({ name:n, hours:h });
     addNameToSaved(n);
     savePeople();
-
     $("quickName").value = "";
     $("quickHours").value = "";
     renderRows(null);
@@ -698,47 +724,37 @@
     renderRows(null);
   }
 
-  // ===== Manage Names modal wiring (added) =====
+  // ===== Manage Names Modal =====
   function openNamesModal(){
     const modal = $("namesModal");
     const list = $("namesList");
     const names = loadSavedNames();
-
     list.innerHTML = "";
-
     if (names.length === 0){
       const empty = document.createElement("div");
       empty.className = "mutedSmall";
-      empty.textContent = "No saved names yet. Add a person and it will save automatically.";
+      empty.textContent = "No saved names yet.";
       list.appendChild(empty);
     } else {
       names.forEach(name => {
         const row = document.createElement("div");
         row.className = "modalRow";
-
         const left = document.createElement("div");
         left.className = "nameText";
         left.textContent = name;
-
         const del = document.createElement("button");
         del.className = "iconBtn";
         del.title = "Delete";
         del.textContent = "🗑";
-        del.onclick = () => {
-          removeSavedName(name);
-          openNamesModal(); // refresh list
-        };
-
+        del.onclick = () => { removeSavedName(name); openNamesModal(); };
         row.appendChild(left);
         row.appendChild(del);
         list.appendChild(row);
       });
     }
-
     modal.style.display = "flex";
     modal.setAttribute("aria-hidden", "false");
   }
-
   function closeNamesModal(){
     const modal = $("namesModal");
     modal.style.display = "none";
@@ -748,54 +764,33 @@
   $("manageNamesBtn").onclick = openNamesModal;
   $("closeNamesBtn").onclick = closeNamesModal;
   $("doneNamesBtn").onclick = closeNamesModal;
-
   $("clearNamesBtn").onclick = () => {
-    if (confirm("Clear ALL saved names from autocomplete on this phone?")) {
-      clearSavedNames();
-      openNamesModal();
-    }
+    if (confirm("Clear ALL saved names?")) { clearSavedNames(); openNamesModal(); }
   };
-
-  // Close modal if you tap the dark background
-  $("namesModal").addEventListener("click", (e) => {
-    if (e.target.id === "namesModal") closeNamesModal();
-  });
-
-  // Close modal with ESC (desktop)
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeNamesModal();
-  });
+  $("namesModal").addEventListener("click", (e) => { if (e.target.id === "namesModal") closeNamesModal(); });
+  window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeNamesModal(); });
 
   // Persist selected mode
   function loadMode(){
     const m = localStorage.getItem(LS_MODE);
     if (m) $("extraMode").value = m;
   }
-  $("extraMode").addEventListener("change", () => {
-    localStorage.setItem(LS_MODE, $("extraMode").value);
-  });
+  $("extraMode").addEventListener("change", () => { localStorage.setItem(LS_MODE, $("extraMode").value); });
 
-  // Wire up
+  // Wire up buttons
   $("calcBtn").onclick = calculate;
   $("addBtn").onclick = addPerson;
   $("resetBtn").onclick = resetAll;
 
-  $("quickName").addEventListener("keydown", (e)=>{
-    if(e.key==="Enter"){ e.preventDefault(); $("quickHours").focus(); }
-  });
-  $("quickHours").addEventListener("keydown", (e)=>{
-    if(e.key==="Enter"){ e.preventDefault(); addPerson(); }
-  });
-  $("totalTips").addEventListener("keydown", (e)=>{
-    if(e.key==="Enter"){ e.preventDefault(); calculate(); }
-  });
+  $("quickName").addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); $("quickHours").focus(); } });
+  $("quickHours").addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); addPerson(); } });
+  $("totalTips").addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); calculate(); } });
 
   // Init
   renderNameDatalist(saveNames(loadSavedNames().concat(people.map(p=>p.name))));
   loadMode();
   renderRows(null);
 
-  // PWA SW registration
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
   }
