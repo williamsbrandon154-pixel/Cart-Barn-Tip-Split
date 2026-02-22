@@ -3,202 +3,270 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#12141b" />
+  <meta name="theme-color" content="#0b0f1a" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <title>Tip Split (No Cents)</title>
+  <title>Tip Split</title>
 
   <style>
     :root{
-      --bg:#0b0c10; --card:#12141b; --muted:#9aa3b2; --text:#eef2ff;
-      --line:#242a36; --good:#28d17c; --bad:#ff5a7a; --brand:#2b63ff;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --tap: 52px; --r:18px;
-      font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      --bg:#070a12;
+      --panel:#0b0f1a;
+      --card:#0f1526;
+      --line:rgba(255,255,255,.08);
+      --text:#eef2ff;
+      --muted:rgba(238,242,255,.68);
+      --brand:#3b82f6;
+      --good:#22c55e;
+      --bad:#fb7185;
+      --tap:50px;
+      --r:18px;
+      --shadow: 0 12px 34px rgba(0,0,0,.45);
+      font-family:-apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
-    body{ margin:0; background:linear-gradient(180deg,#090a0e,#0b0c10); color:var(--text); }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(59,130,246,.25), transparent 55%),
+        radial-gradient(900px 600px at 120% 0%, rgba(34,197,94,.16), transparent 60%),
+        linear-gradient(180deg, var(--bg), #05070d 60%, #04060b);
+      min-height:100vh;
+    }
+
     header{
-      padding:16px 16px 10px;
-      position:sticky; top:0;
-      background:rgba(11,12,16,.88);
-      backdrop-filter: blur(12px);
-      border-bottom:1px solid var(--line);
-      z-index:5;
+      position:sticky; top:0; z-index:20;
+      padding:14px 16px 10px;
+      background: rgba(7,10,18,.72);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
     }
-    h1{ margin:0; font-size:18px; letter-spacing:.2px;}
-    .sub{ margin-top:6px; color:var(--muted); font-size:13px; line-height:1.25;}
-    .wrap{ padding:16px; max-width:860px; margin:0 auto; }
-    .card{
-      background:var(--card);
+    .titleRow{
+      display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+      max-width:980px; margin:0 auto;
+    }
+    h1{ margin:0; font-size:18px; letter-spacing:.2px; }
+    .tiny{ color:var(--muted); font-size:12px; line-height:1.2; text-align:right; }
+
+    .wrap{ max-width:980px; margin:0 auto; padding:16px; }
+
+    .shell{
       border:1px solid var(--line);
-      border-radius:var(--r);
-      box-shadow:var(--shadow);
+      background: rgba(11,15,26,.72);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
       overflow:hidden;
     }
 
-    .top{ padding:14px; }
-    .row{ display:flex; gap:10px; flex-wrap:wrap; }
-    .col{ flex:1; min-width:160px; }
-    label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .gridTop{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 1fr 1.1fr 1.1fr .9fr;
+      gap:10px;
+    }
+
+    @media (max-width:860px){
+      .gridTop{ grid-template-columns: 1fr 1fr; }
+      .tiny{ text-align:left; }
+    }
+
+    label{ display:block; font-size:12px; color:var(--muted); margin:0 0 6px; }
     input, select{
       width:100%;
       height:var(--tap);
       padding:0 12px;
-      border-radius:14px;
+      border-radius: 14px;
       border:1px solid var(--line);
-      background:#0c0f16;
-      color:var(--text);
-      font-size:16px;
+      background: rgba(15,21,38,.9);
+      color: var(--text);
       outline:none;
-      appearance:none;
+      font-size:16px;
     }
+    input::placeholder{ color:rgba(238,242,255,.35); }
     input:focus, select:focus{
-      border-color:var(--brand);
-      box-shadow:0 0 0 3px rgba(43,99,255,.18);
+      border-color: rgba(59,130,246,.75);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.18);
     }
 
-    .btns{ display:flex; gap:10px; flex-wrap:wrap; padding:0 14px 14px;}
+    .btnRow{
+      padding:0 14px 14px;
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
     button{
       height:var(--tap);
       padding:0 14px;
       border-radius:14px;
       border:1px solid var(--line);
-      background:#111522;
+      background: rgba(15,21,38,.9);
       color:var(--text);
       font-size:15px;
-      font-weight:650;
+      font-weight:700;
       cursor:pointer;
       flex:1;
-      min-width:140px;
-      transition: transform .02s ease, filter .15s ease;
+      min-width:150px;
+      transition: filter .12s ease, transform .03s ease;
     }
-    button.primary{ background:var(--brand); border-color:var(--brand); }
-    button.danger{ background:#2a1118; border-color:#3a1a24; color:#ffd1db; }
-    button:active{ transform:scale(.99); }
-    button:hover{ filter:brightness(1.05); }
+    button.primary{
+      background: linear-gradient(180deg, rgba(59,130,246,.95), rgba(59,130,246,.7));
+      border-color: rgba(59,130,246,.75);
+    }
+    button.ghost{
+      background: rgba(15,21,38,.7);
+    }
+    button.danger{
+      background: rgba(251,113,133,.12);
+      border-color: rgba(251,113,133,.22);
+      color: rgba(255,225,231,.95);
+    }
+    button:active{ transform: scale(.99); }
+    button:hover{ filter: brightness(1.06); }
 
-    .table{ border-top:1px solid var(--line); }
-    .thead{
+    .table{
+      border-top:1px solid var(--line);
+    }
+    .thead, .trow{
       display:grid;
-      grid-template-columns: 1.4fr .7fr .8fr;
+      grid-template-columns: 1.35fr .65fr .7fr;
       gap:10px;
-      padding:10px 14px;
+      padding:12px 14px;
       align-items:center;
-      color:var(--muted);
+    }
+    .thead{
+      color: var(--muted);
       font-size:12px;
-      background:rgba(255,255,255,.02);
+      background: rgba(255,255,255,.02);
       border-bottom:1px solid var(--line);
     }
     .trow{
-      display:grid;
-      grid-template-columns: 1.4fr .7fr .8fr;
-      gap:10px;
-      padding:10px 14px;
-      align-items:center;
-      border-bottom:1px solid rgba(36,42,54,.65);
+      border-bottom:1px solid rgba(255,255,255,.06);
     }
     .trow:last-child{ border-bottom:none; }
 
-    .nameCell{ display:flex; gap:10px; align-items:center; }
+    .nameCell{ display:flex; gap:10px; align-items:center; min-width:0; }
     .miniBtn{
-      width:44px; height:44px;
-      border-radius:12px;
+      width:42px; height:42px;
+      border-radius: 12px;
       border:1px solid var(--line);
-      background:#0c0f16;
-      color:#cfd6e6;
+      background: rgba(7,10,18,.6);
+      color: rgba(238,242,255,.85);
       font-size:18px;
       line-height:1;
       flex:0 0 auto;
     }
-    .payBox{
-      height:44px;
+
+    .payPill{
+      height:42px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(7,10,18,.45);
       display:flex;
       align-items:center;
       justify-content:center;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:#0c0f16;
       font-weight:900;
-      font-variant-numeric: tabular-nums;
       letter-spacing:.2px;
+      font-variant-numeric: tabular-nums;
     }
-    .payBox.ready{
-      border-color: rgba(40,209,124,.35);
-      box-shadow: 0 0 0 3px rgba(40,209,124,.08);
+    .payPill.ready{
+      border-color: rgba(34,197,94,.28);
+      box-shadow: 0 0 0 3px rgba(34,197,94,.08);
     }
 
     .summary{
-      padding:14px;
       border-top:1px solid var(--line);
+      background: rgba(0,0,0,.12);
+      padding:14px;
       display:grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(4, 1fr);
       gap:10px;
-      background: rgba(0,0,0,.08);
     }
     .box{
       border:1px solid var(--line);
-      border-radius:14px;
+      background: rgba(15,21,38,.75);
+      border-radius: 16px;
       padding:12px;
-      background:#0c0f16;
+      min-height:74px;
     }
-    .box .k{ color:var(--muted); font-size:12px; margin-bottom:6px;}
-    .box .v{ font-size:18px; font-weight:900; font-variant-numeric: tabular-nums; }
+    .box .k{ color:var(--muted); font-size:12px; margin-bottom:6px; }
+    .box .v{
+      font-size:18px;
+      font-weight:900;
+      font-variant-numeric: tabular-nums;
+    }
     .ok{ color:var(--good); font-weight:900; }
     .no{ color:var(--bad); font-weight:900; }
 
-    .foot{ padding:14px; color:var(--muted); font-size:12px; line-height:1.35;}
-    .hint{ color:#b8c1d6; }
+    @media (max-width:860px){
+      .summary{ grid-template-columns: 1fr 1fr; }
+      .thead,.trow{ grid-template-columns: 1.25fr .75fr .8fr; }
+    }
 
-    @media (max-width:520px){
-      .summary{ grid-template-columns:1fr; }
-      .thead, .trow{ grid-template-columns: 1.35fr .8fr .85fr; }
+    .foot{
+      padding:14px;
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.35;
+      border-top:1px solid rgba(255,255,255,.06);
+    }
+    .kbd{
+      display:inline-block;
+      padding:2px 8px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background: rgba(7,10,18,.45);
+      color: rgba(238,242,255,.85);
+      font-variant-numeric: tabular-nums;
     }
   </style>
 </head>
 
 <body>
 <header>
-  <h1>Tip Split (No Cents)</h1>
-  <div class="sub">
-    Whole dollars only. Extra money handling is selectable. Names autocomplete & save automatically.
+  <div class="titleRow">
+    <div>
+      <h1>Tip Split</h1>
+      <div class="tiny">Whole dollars only • iPhone-friendly • Works offline</div>
+    </div>
+    <div class="tiny">
+      Extra rule: <span class="kbd">Top Hours</span><br/>
+      Ties split evenly, leftover $1s random
+    </div>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="card">
-    <div class="top">
-      <div class="row">
-        <div class="col">
-          <label>Total Tips ($)</label>
-          <input id="totalTips" inputmode="numeric" pattern="[0-9]*" placeholder="270" />
-        </div>
+  <div class="shell">
+    <div class="gridTop">
+      <div>
+        <label>Total Tips ($)</label>
+        <input id="totalTips" inputmode="numeric" pattern="[0-9]*" placeholder="270" />
+      </div>
 
-        <div class="col">
-          <label>Extra Money Option</label>
-          <select id="extraMode">
-            <option value="none">1) Do nothing (leave unassigned)</option>
-            <option value="random">2) Random</option>
-            <option value="mosthours" selected>3) Most hours</option>
-          </select>
-        </div>
+      <div>
+        <label>Quick Add Name (autocomplete)</label>
+        <input id="quickName" list="nameSuggestions" placeholder="Start typing…" />
+        <datalist id="nameSuggestions"></datalist>
+      </div>
 
-        <div class="col">
-          <label>Quick Add Name (autocomplete)</label>
-          <input id="quickName" list="nameSuggestions" placeholder="Start typing..." />
-          <datalist id="nameSuggestions"></datalist>
-        </div>
+      <div>
+        <label>Hours</label>
+        <input id="quickHours" inputmode="decimal" placeholder="8.5" />
+      </div>
 
-        <div class="col">
-          <label>Hours</label>
-          <input id="quickHours" inputmode="decimal" placeholder="8.5 (enter to add)" />
-        </div>
+      <div>
+        <label>Extra Money Option</label>
+        <select id="extraMode">
+          <option value="none">Do nothing</option>
+          <option value="random">Random</option>
+          <option value="tophours" selected>Top Hours (split ties)</option>
+        </select>
       </div>
     </div>
 
-    <div class="btns">
+    <div class="btnRow">
       <button class="primary" id="calcBtn">Calculate</button>
-      <button id="addBtn">Add Person</button>
-      <button id="resetBtn" class="danger">Reset</button>
+      <button class="ghost" id="addBtn">Add Person</button>
+      <button class="danger" id="resetBtn">Reset</button>
     </div>
 
     <div class="table">
@@ -216,12 +284,12 @@
         <div class="v" id="sumHours">0</div>
       </div>
       <div class="box">
-        <div class="k">Check: Sum of Payouts</div>
-        <div class="v" id="sumPay">$0</div>
-      </div>
-      <div class="box">
         <div class="k">Rate ($/hr)</div>
         <div class="v" id="rate">$0.00</div>
+      </div>
+      <div class="box">
+        <div class="k">Sum of Payouts</div>
+        <div class="v" id="sumPay">$0</div>
       </div>
       <div class="box">
         <div class="k">Unassigned (if “Do nothing”)</div>
@@ -234,17 +302,17 @@
     </div>
 
     <div class="foot">
-      <div class="hint">Tips:</div>
-      • Names autocomplete based on your saved list. • Any new name gets saved automatically. • “Most hours” distributes extras by highest hours first; tie groups get randomized if needed.
+      Quick Add: type name → <span class="kbd">Enter</span> → type hours → <span class="kbd">Enter</span>. New names auto-save.
+      Recalculate reshuffles random tie-breaks when needed.
     </div>
   </div>
 </div>
 
 <script>
   // ====== LocalStorage keys ======
-  const LS_NAMES = "tipSplit_savedNames_v1";
-  const LS_PEOPLE = "tipSplit_people_v1";
-  const LS_MODE  = "tipSplit_extraMode_v1";
+  const LS_NAMES = "tipSplit_savedNames_v2";
+  const LS_PEOPLE = "tipSplit_people_v2";
+  const LS_MODE  = "tipSplit_extraMode_v2";
 
   const $ = (id) => document.getElementById(id);
 
@@ -273,7 +341,8 @@
   }
 
   function saveNames(names){
-    const clean = Array.from(new Set(names.map(s => String(s).trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+    const clean = Array.from(new Set(names.map(s => String(s).trim()).filter(Boolean)))
+      .sort((a,b)=>a.localeCompare(b));
     localStorage.setItem(LS_NAMES, JSON.stringify(clean));
     renderNameDatalist(clean);
     return clean;
@@ -298,7 +367,7 @@
   }
 
   // ====== People list ======
-  let peopleDefault = [
+  const peopleDefault = [
     { name: "John Roro", hours: 7.5 },
     { name: "Brandon", hours: 8.5 },
     { name: "Ryan", hours: 8.5 },
@@ -315,7 +384,7 @@
     try {
       const raw = localStorage.getItem(LS_PEOPLE);
       const arr = raw ? JSON.parse(raw) : null;
-      if (!Array.isArray(arr)) return peopleDefault;
+      if (!Array.isArray(arr) || arr.length === 0) return peopleDefault;
       return arr.map(p => ({ name: String(p.name ?? ""), hours: toNum(p.hours) }));
     } catch {
       return peopleDefault;
@@ -344,7 +413,11 @@
       del.className = "miniBtn";
       del.textContent = "−";
       del.title = "Remove";
-      del.onclick = () => { people.splice(i,1); savePeople(); renderRows(finalPays); };
+      del.onclick = () => {
+        people.splice(i, 1);
+        savePeople();
+        renderRows(finalPays);
+      };
 
       const nameInput = document.createElement("input");
       nameInput.value = p.name;
@@ -362,13 +435,13 @@
       hoursInput.inputMode = "decimal";
       hoursInput.oninput = (e) => { people[i].hours = toNum(e.target.value); savePeople(); };
 
-      const payBox = document.createElement("div");
-      payBox.className = "payBox" + (finalPays ? " ready" : "");
-      payBox.textContent = finalPays ? money0(finalPays[i] || 0) : "—";
+      const payPill = document.createElement("div");
+      payPill.className = "payPill" + (finalPays ? " ready" : "");
+      payPill.textContent = finalPays ? money0(finalPays[i] || 0) : "—";
 
       row.appendChild(nameCell);
       row.appendChild(hoursInput);
-      row.appendChild(payBox);
+      row.appendChild(payPill);
 
       rows.appendChild(row);
     });
@@ -376,41 +449,38 @@
 
   // ===== Extra money strategies =====
   function allocateExtrasRandom(finalPay, eligibleIdxs, extras){
-    // choose random recipients (can repeat if extras > eligible count)
+    if (extras <= 0) return;
     const bag = eligibleIdxs.slice();
     shuffle(bag);
-    for (let k=0; k<extras; k++){
+    for (let k = 0; k < extras; k++){
       if (bag.length === 0) break;
       finalPay[bag[k % bag.length]] += 1;
-      if ((k % bag.length) === bag.length-1) shuffle(bag);
+      if ((k % bag.length) === bag.length - 1) shuffle(bag);
     }
   }
 
-  function allocateExtrasMostHours(finalPay, hoursArr, eligibleIdxs, extras){
-    // sort eligible by hours desc, then stable
-    const idxs = eligibleIdxs.slice().sort((i,j)=> hoursArr[j]-hoursArr[i] || i-j);
+  // OLD WAY (requested):
+  // Extra dollars go to whoever worked the MOST hours.
+  // If there are ties for most hours, extras split evenly among them.
+  // If remainder after even split, distribute remaining $1s randomly among the tied group.
+  function allocateExtrasTopHoursSplit(finalPay, hoursArr, eligibleIdxs, extras){
+    if (extras <= 0) return;
 
-    // group by equal hours
-    const groups = [];
-    for (const idx of idxs){
-      const h = hoursArr[idx];
-      const last = groups[groups.length - 1];
-      if (!last || last.hours !== h) groups.push({hours:h, members:[idx]});
-      else last.members.push(idx);
+    let maxH = -Infinity;
+    for (const i of eligibleIdxs) maxH = Math.max(maxH, hoursArr[i]);
+
+    const top = eligibleIdxs.filter(i => hoursArr[i] === maxH);
+    if (top.length === 0) return;
+
+    const each = Math.floor(extras / top.length);
+    if (each > 0){
+      for (const i of top) finalPay[i] += each;
+      extras -= each * top.length;
     }
 
-    for (const g of groups){
-      if (extras <= 0) break;
-      if (extras >= g.members.length){
-        // everyone in this group +1
-        for (const idx of g.members) finalPay[idx] += 1;
-        extras -= g.members.length;
-      } else {
-        // tie at cutoff: random subset
-        const picks = shuffle(g.members.slice()).slice(0, extras);
-        for (const idx of picks) finalPay[idx] += 1;
-        extras = 0;
-      }
+    if (extras > 0){
+      const picks = shuffle(top.slice()).slice(0, extras);
+      for (const i of picks) finalPay[i] += 1;
     }
   }
 
@@ -432,20 +502,21 @@
       return;
     }
 
-    // Save names (from list) so autocomplete keeps growing
+    // Grow the autocomplete list automatically
     people.forEach(p => addNameToSaved(p.name));
 
     const rate = totalTips / sumHours;
 
+    // Base pay: floor(exact). NO CENTS EVER.
     const exact = hoursArr.map(h => h * rate);
-    const base = exact.map(x => Math.floor(x)); // NO CENTS EVER
+    const base = exact.map(x => Math.floor(x));
 
     const baseSum = base.reduce((a,b)=>a+b,0);
     let extras = totalTips - baseSum; // whole dollars left over
 
     const finalPay = base.slice();
 
-    // Eligible = only people with hours > 0 and a name (optional, but avoids weirdness)
+    // Eligible = hours > 0 AND name not blank
     const eligibleIdxs = people
       .map((p,i)=>({p,i}))
       .filter(x => toNum(x.p.hours) > 0 && String(x.p.name).trim() !== "")
@@ -456,8 +527,8 @@
     } else if (mode === "random"){
       allocateExtrasRandom(finalPay, eligibleIdxs, extras);
       extras = 0;
-    } else if (mode === "mosthours"){
-      allocateExtrasMostHours(finalPay, hoursArr, eligibleIdxs, extras);
+    } else if (mode === "tophours"){
+      allocateExtrasTopHoursSplit(finalPay, hoursArr, eligibleIdxs, extras);
       extras = 0;
     }
 
@@ -494,7 +565,7 @@
   }
 
   function resetAll(){
-    if (!confirm("Reset the list AND saved people list? (Saved names remain)")) return;
+    if (!confirm("Reset the list? (Saved names stay)")) return;
     people = [];
     savePeople();
     $("totalTips").value = "";
@@ -517,6 +588,7 @@
     localStorage.setItem(LS_MODE, $("extraMode").value);
   });
 
+  // Wire up
   $("calcBtn").onclick = calculate;
   $("addBtn").onclick = addPerson;
   $("resetBtn").onclick = resetAll;
