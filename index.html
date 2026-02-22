@@ -27,6 +27,8 @@ button{background:#3b82f6;color:white;font-weight:bold;}
 .person{display:flex;gap:10px;margin:5px 0;}
 .remove{width:50px;background:#ef4444;}
 .pay{background:#111827;padding:10px;border-radius:10px;text-align:center;}
+.top-buttons{display:flex;gap:10px;}
+.top-buttons button{flex:1;}
 </style>
 </head>
 
@@ -49,9 +51,11 @@ button{background:#3b82f6;color:white;font-weight:bold;}
 <input id="hours" class="small" placeholder="Hours"/>
 </div>
 
+<div class="top-buttons">
 <button onclick="add()">Add</button>
 <button onclick="calc()">Calculate</button>
 <button onclick="manage()">Manage Names</button>
+</div>
 
 <div id="list"></div>
 
@@ -74,6 +78,7 @@ const LS="names";
 
 let people=[];
 
+// ===== STORAGE =====
 function saveNames(arr){
 localStorage.setItem(LS,JSON.stringify(arr));
 loadNames();
@@ -105,6 +110,7 @@ dl.appendChild(o);
 });
 }
 
+// ===== ADD PERSON =====
 function add(){
 let n=document.getElementById("name").value;
 let h=parseFloat(document.getElementById("hours").value);
@@ -120,6 +126,7 @@ document.getElementById("hours").value="";
 render();
 }
 
+// ===== RENDER =====
 function render(){
 let div=document.getElementById("list");
 div.innerHTML="";
@@ -139,17 +146,21 @@ div.appendChild(d);
 });
 }
 
+// ===== REMOVE PERSON =====
 function removePerson(i){
 people.splice(i,1);
 render();
 }
 
+// ===== CALCULATE =====
 function calc(){
 
 let total=parseInt(document.getElementById("totalTips").value);
 let mode=document.getElementById("mode").value;
 
 let sum=people.reduce((a,b)=>a+b.hours,0);
+if(!total||!sum)return;
+
 let rate=total/sum;
 
 let base=people.map(p=>Math.floor(p.hours*rate));
@@ -160,6 +171,7 @@ people.forEach((p,i)=>p.pay=base[i]);
 
 let idxs=people.map((_,i)=>i);
 
+// RANDOM
 if(mode==="random"){
 for(let i=0;i<extra;i++){
 let r=Math.floor(Math.random()*idxs.length);
@@ -167,6 +179,7 @@ people[idxs[r]].pay++;
 }
 }
 
+// TOP HOURS (YOUR RULE)
 if(mode==="tophours"){
 let max=Math.max(...people.map(p=>p.hours));
 let top=idxs.filter(i=>people[i].hours===max);
@@ -186,6 +199,7 @@ render();
 
 }
 
+// ===== MANAGE NAMES =====
 function manage(){
 let modal=document.getElementById("modal");
 let list=document.getElementById("modalList");
@@ -196,10 +210,11 @@ getNames().forEach(n=>{
 let d=document.createElement("div");
 d.style.display="flex";
 d.style.justifyContent="space-between";
+d.style.marginBottom="8px";
 
 d.innerHTML=`
 <span>${n}</span>
-<button onclick="removeName('${n}');manage()">X</button>
+<button onclick="removeName('${n}');manage()">❌</button>
 `;
 
 list.appendChild(d);
@@ -212,6 +227,7 @@ function closeModal(){
 document.getElementById("modal").style.display="none";
 }
 
+// INIT
 loadNames();
 
 </script>
