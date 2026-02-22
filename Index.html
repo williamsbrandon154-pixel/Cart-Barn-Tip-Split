@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#12141b" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <title>Tip Split (No Cents)</title>
+
+  <style>
+    :root{
+      --bg:#0b0c10; --card:#12141b; --muted:#9aa3b2; --text:#eef2ff;
+      --line:#242a36; --good:#28d17c; --bad:#ff5a7a; --brand:#2b63ff;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --tap: 52px; --r:18px;
+      font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    body{ margin:0; background:linear-gradient(180deg,#090a0e,#0b0c10); color:var(--text); }
+    header{
+      padding:16px 16px 10px;
+      position:sticky; top:0;
+      background:rgba(11,12,16,.88);
+      backdrop-filter: blur(12px);
+      border-bottom:1px solid var(--line);
+      z-index:5;
+    }
+    h1{ margin:0; font-size:18px; letter-spacing:.2px;}
+    .sub{ margin-top:6px; color:var(--muted); font-size:13px; line-height:1.25;}
+    .wrap{ padding:16px; max-width:860px; margin:0 auto; }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .top{ padding:14px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; }
+    .col{ flex:1; min-width:160px; }
+    label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    input, select{
+      width:100%;
+      height:var(--tap);
+      padding:0 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#0c0f16;
+      color:var(--text);
+      font-size:16px;
+      outline:none;
+      appearance:none;
+    }
+    input:focus, select:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 3px rgba(43,99,255,.18);
+    }
+
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; padding:0 14px 14px;}
+    button{
+      height:var(--tap);
+      padding:0 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#111522;
+      color:var(--text);
+      font-size:15px;
+      font-weight:650;
+      cursor:pointer;
+      flex:1;
+      min-width:140px;
+      transition: transform .02s ease, filter .15s ease;
+    }
+    button.primary{ background:var(--brand); border-color:var(--brand); }
+    button.danger{ background:#2a1118; border-color:#3a1a24; color:#ffd1db; }
+    button:active{ transform:scale(.99); }
+    button:hover{ filter:brightness(1.05); }
+
+    .table{ border-top:1px solid var(--line); }
+    .thead{
+      display:grid;
+      grid-template-columns: 1.4fr .7fr .8fr;
+      gap:10px;
+      padding:10px 14px;
+      align-items:center;
+      color:var(--muted);
+      font-size:12px;
+      background:rgba(255,255,255,.02);
+      border-bottom:1px solid var(--line);
+    }
+    .trow{
+      display:grid;
+      grid-template-columns: 1.4fr .7fr .8fr;
+      gap:10px;
+      padding:10px 14px;
+      align-items:center;
+      border-bottom:1px solid rgba(36,42,54,.65);
+    }
+    .trow:last-child{ border-bottom:none; }
+
+    .nameCell{ display:flex; gap:10px; align-items:center; }
+    .miniBtn{
+      width:44px; height:44px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#0c0f16;
+      color:#cfd6e6;
+      font-size:18px;
+      line-height:1;
+      flex:0 0 auto;
+    }
+    .payBox{
+      height:44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#0c0f16;
+      font-weight:900;
+      font-variant-numeric: tabular-nums;
+      letter-spacing:.2px;
+    }
+    .payBox.ready{
+      border-color: rgba(40,209,124,.35);
+      box-shadow: 0 0 0 3px rgba(40,209,124,.08);
+    }
+
+    .summary{
+      padding:14px;
+      border-top:1px solid var(--line);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      background: rgba(0,0,0,.08);
+    }
+    .box{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      background:#0c0f16;
+    }
+    .box .k{ color:var(--muted); font-size:12px; margin-bottom:6px;}
+    .box .v{ font-size:18px; font-weight:900; font-variant-numeric: tabular-nums; }
+    .ok{ color:var(--good); font-weight:900; }
+    .no{ color:var(--bad); font-weight:900; }
+
+    .foot{ padding:14px; color:var(--muted); font-size:12px; line-height:1.35;}
+    .hint{ color:#b8c1d6; }
+
+    @media (max-width:520px){
+      .summary{ grid-template-columns:1fr; }
+      .thead, .trow{ grid-template-columns: 1.35fr .8fr .85fr; }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Tip Split (No Cents)</h1>
+  <div class="sub">
+    Whole dollars only. Extra money handling is selectable. Names autocomplete & save automatically.
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="top">
+      <div class="row">
+        <div class="col">
+          <label>Total Tips ($)</label>
+          <input id="totalTips" inputmode="numeric" pattern="[0-9]*" placeholder="270" />
+        </div>
+
+        <div class="col">
+          <label>Extra Money Option</label>
+          <select id="extraMode">
+            <option value="none">1) Do nothing (leave unassigned)</option>
+            <option value="random">2) Random</option>
+            <option value="mosthours" selected>3) Most hours</option>
+          </select>
+        </div>
+
+        <div class="col">
+          <label>Quick Add Name (autocomplete)</label>
+          <input id="quickName" list="nameSuggestions" placeholder="Start typing..." />
+          <datalist id="nameSuggestions"></datalist>
+        </div>
+
+        <div class="col">
+          <label>Hours</label>
+          <input id="quickHours" inputmode="decimal" placeholder="8.5 (enter to add)" />
+        </div>
+      </div>
+    </div>
+
+    <div class="btns">
+      <button class="primary" id="calcBtn">Calculate</button>
+      <button id="addBtn">Add Person</button>
+      <button id="resetBtn" class="danger">Reset</button>
+    </div>
+
+    <div class="table">
+      <div class="thead">
+        <div>Name</div>
+        <div>Hours</div>
+        <div>Final Pay</div>
+      </div>
+      <div id="rows"></div>
+    </div>
+
+    <div class="summary">
+      <div class="box">
+        <div class="k">Total Hours</div>
+        <div class="v" id="sumHours">0</div>
+      </div>
+      <div class="box">
+        <div class="k">Check: Sum of Payouts</div>
+        <div class="v" id="sumPay">$0</div>
+      </div>
+      <div class="box">
+        <div class="k">Rate ($/hr)</div>
+        <div class="v" id="rate">$0.00</div>
+      </div>
+      <div class="box">
+        <div class="k">Unassigned (if “Do nothing”)</div>
+        <div class="v" id="unassigned">$0</div>
+      </div>
+      <div class="box" style="grid-column:1/-1;">
+        <div class="k">Status</div>
+        <div class="v" id="status"><span class="no">Waiting</span></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div class="hint">Tips:</div>
+      • Names autocomplete based on your saved list. • Any new name gets saved automatically. • “Most hours” distributes extras by highest hours first; tie groups get randomized if needed.
+    </div>
+  </div>
+</div>
+
+<script>
+  // ====== LocalStorage keys ======
+  const LS_NAMES = "tipSplit_savedNames_v1";
+  const LS_PEOPLE = "tipSplit_people_v1";
+  const LS_MODE  = "tipSplit_extraMode_v1";
+
+  const $ = (id) => document.getElementById(id);
+
+  function toNum(v){
+    const n = parseFloat(String(v ?? "").replace(/[^0-9.]/g,""));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function money0(n){ return "$" + n.toFixed(0); }
+  function money2(n){ return "$" + n.toFixed(2); }
+
+  function shuffle(arr){
+    for (let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // ====== Saved names (autocomplete) ======
+  function loadSavedNames(){
+    try {
+      const raw = localStorage.getItem(LS_NAMES);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+
+  function saveNames(names){
+    const clean = Array.from(new Set(names.map(s => String(s).trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+    localStorage.setItem(LS_NAMES, JSON.stringify(clean));
+    renderNameDatalist(clean);
+    return clean;
+  }
+
+  function addNameToSaved(name){
+    const n = String(name).trim();
+    if (!n) return;
+    const names = loadSavedNames();
+    names.push(n);
+    saveNames(names);
+  }
+
+  function renderNameDatalist(names){
+    const dl = $("nameSuggestions");
+    dl.innerHTML = "";
+    names.forEach(n=>{
+      const opt = document.createElement("option");
+      opt.value = n;
+      dl.appendChild(opt);
+    });
+  }
+
+  // ====== People list ======
+  let peopleDefault = [
+    { name: "John Roro", hours: 7.5 },
+    { name: "Brandon", hours: 8.5 },
+    { name: "Ryan", hours: 8.5 },
+    { name: "Ty", hours: 7.5 },
+    { name: "Matt S", hours: 15.5 },
+    { name: "Will", hours: 8.5 },
+    { name: "Angel", hours: 8.5 },
+    { name: "Hunter", hours: 8.5 },
+    { name: "Mason", hours: 8.0 },
+    { name: "Matt M", hours: 8.5 },
+  ];
+
+  function loadPeople(){
+    try {
+      const raw = localStorage.getItem(LS_PEOPLE);
+      const arr = raw ? JSON.parse(raw) : null;
+      if (!Array.isArray(arr)) return peopleDefault;
+      return arr.map(p => ({ name: String(p.name ?? ""), hours: toNum(p.hours) }));
+    } catch {
+      return peopleDefault;
+    }
+  }
+
+  function savePeople(){
+    localStorage.setItem(LS_PEOPLE, JSON.stringify(people));
+  }
+
+  let people = loadPeople();
+
+  // ===== Rendering rows =====
+  function renderRows(finalPays = null){
+    const rows = $("rows");
+    rows.innerHTML = "";
+
+    people.forEach((p, i) => {
+      const row = document.createElement("div");
+      row.className = "trow";
+
+      const nameCell = document.createElement("div");
+      nameCell.className = "nameCell";
+
+      const del = document.createElement("button");
+      del.className = "miniBtn";
+      del.textContent = "−";
+      del.title = "Remove";
+      del.onclick = () => { people.splice(i,1); savePeople(); renderRows(finalPays); };
+
+      const nameInput = document.createElement("input");
+      nameInput.value = p.name;
+      nameInput.list = "nameSuggestions";
+      nameInput.placeholder = "Name";
+      nameInput.oninput = (e) => { people[i].name = e.target.value; savePeople(); };
+      nameInput.onblur = () => { addNameToSaved(nameInput.value); };
+
+      nameCell.appendChild(del);
+      nameCell.appendChild(nameInput);
+
+      const hoursInput = document.createElement("input");
+      hoursInput.value = String(p.hours ?? "");
+      hoursInput.placeholder = "Hours";
+      hoursInput.inputMode = "decimal";
+      hoursInput.oninput = (e) => { people[i].hours = toNum(e.target.value); savePeople(); };
+
+      const payBox = document.createElement("div");
+      payBox.className = "payBox" + (finalPays ? " ready" : "");
+      payBox.textContent = finalPays ? money0(finalPays[i] || 0) : "—";
+
+      row.appendChild(nameCell);
+      row.appendChild(hoursInput);
+      row.appendChild(payBox);
+
+      rows.appendChild(row);
+    });
+  }
+
+  // ===== Extra money strategies =====
+  function allocateExtrasRandom(finalPay, eligibleIdxs, extras){
+    // choose random recipients (can repeat if extras > eligible count)
+    const bag = eligibleIdxs.slice();
+    shuffle(bag);
+    for (let k=0; k<extras; k++){
+      if (bag.length === 0) break;
+      finalPay[bag[k % bag.length]] += 1;
+      if ((k % bag.length) === bag.length-1) shuffle(bag);
+    }
+  }
+
+  function allocateExtrasMostHours(finalPay, hoursArr, eligibleIdxs, extras){
+    // sort eligible by hours desc, then stable
+    const idxs = eligibleIdxs.slice().sort((i,j)=> hoursArr[j]-hoursArr[i] || i-j);
+
+    // group by equal hours
+    const groups = [];
+    for (const idx of idxs){
+      const h = hoursArr[idx];
+      const last = groups[groups.length - 1];
+      if (!last || last.hours !== h) groups.push({hours:h, members:[idx]});
+      else last.members.push(idx);
+    }
+
+    for (const g of groups){
+      if (extras <= 0) break;
+      if (extras >= g.members.length){
+        // everyone in this group +1
+        for (const idx of g.members) finalPay[idx] += 1;
+        extras -= g.members.length;
+      } else {
+        // tie at cutoff: random subset
+        const picks = shuffle(g.members.slice()).slice(0, extras);
+        for (const idx of picks) finalPay[idx] += 1;
+        extras = 0;
+      }
+    }
+  }
+
+  // ===== Calculation =====
+  function calculate(){
+    const totalTips = Math.round(toNum($("totalTips").value));
+    const mode = $("extraMode").value;
+
+    const hoursArr = people.map(p => toNum(p.hours));
+    const sumHours = hoursArr.reduce((a,b)=>a+b,0);
+
+    if (totalTips <= 0 || sumHours <= 0 || people.length === 0){
+      $("status").innerHTML = `<span class="no">Enter total + hours</span>`;
+      $("sumHours").textContent = "0";
+      $("sumPay").textContent = "$0";
+      $("rate").textContent = "$0.00";
+      $("unassigned").textContent = "$0";
+      renderRows(null);
+      return;
+    }
+
+    // Save names (from list) so autocomplete keeps growing
+    people.forEach(p => addNameToSaved(p.name));
+
+    const rate = totalTips / sumHours;
+
+    const exact = hoursArr.map(h => h * rate);
+    const base = exact.map(x => Math.floor(x)); // NO CENTS EVER
+
+    const baseSum = base.reduce((a,b)=>a+b,0);
+    let extras = totalTips - baseSum; // whole dollars left over
+
+    const finalPay = base.slice();
+
+    // Eligible = only people with hours > 0 and a name (optional, but avoids weirdness)
+    const eligibleIdxs = people
+      .map((p,i)=>({p,i}))
+      .filter(x => toNum(x.p.hours) > 0 && String(x.p.name).trim() !== "")
+      .map(x => x.i);
+
+    if (mode === "none"){
+      // do nothing: extras remain unassigned
+    } else if (mode === "random"){
+      allocateExtrasRandom(finalPay, eligibleIdxs, extras);
+      extras = 0;
+    } else if (mode === "mosthours"){
+      allocateExtrasMostHours(finalPay, hoursArr, eligibleIdxs, extras);
+      extras = 0;
+    }
+
+    const sumPay = finalPay.reduce((a,b)=>a+b,0);
+
+    $("sumHours").textContent = sumHours.toFixed(1).replace(/\.0$/,"");
+    $("sumPay").textContent = money0(sumPay);
+    $("rate").textContent = money2(rate);
+    $("unassigned").textContent = money0(Math.max(0, totalTips - sumPay));
+
+    if (sumPay === totalTips){
+      $("status").innerHTML = `<span class="ok">Perfect (${money0(totalTips)})</span>`;
+    } else {
+      $("status").innerHTML = `<span class="no">Not fully assigned (${money0(totalTips - sumPay)} left)</span>`;
+    }
+
+    renderRows(finalPay);
+  }
+
+  // ===== Actions =====
+  function addPerson(){
+    const n = $("quickName").value.trim();
+    const h = toNum($("quickHours").value);
+    if (!n || h <= 0) return;
+
+    people.push({ name:n, hours:h });
+    addNameToSaved(n);
+    savePeople();
+
+    $("quickName").value = "";
+    $("quickHours").value = "";
+    renderRows(null);
+    $("quickName").focus();
+  }
+
+  function resetAll(){
+    if (!confirm("Reset the list AND saved people list? (Saved names remain)")) return;
+    people = [];
+    savePeople();
+    $("totalTips").value = "";
+    $("quickName").value = "";
+    $("quickHours").value = "";
+    $("sumHours").textContent = "0";
+    $("sumPay").textContent = "$0";
+    $("rate").textContent = "$0.00";
+    $("unassigned").textContent = "$0";
+    $("status").innerHTML = `<span class="no">Waiting</span>`;
+    renderRows(null);
+  }
+
+  // Persist selected mode
+  function loadMode(){
+    const m = localStorage.getItem(LS_MODE);
+    if (m) $("extraMode").value = m;
+  }
+  $("extraMode").addEventListener("change", () => {
+    localStorage.setItem(LS_MODE, $("extraMode").value);
+  });
+
+  $("calcBtn").onclick = calculate;
+  $("addBtn").onclick = addPerson;
+  $("resetBtn").onclick = resetAll;
+
+  $("quickName").addEventListener("keydown", (e)=>{
+    if(e.key==="Enter"){ e.preventDefault(); $("quickHours").focus(); }
+  });
+  $("quickHours").addEventListener("keydown", (e)=>{
+    if(e.key==="Enter"){ e.preventDefault(); addPerson(); }
+  });
+  $("totalTips").addEventListener("keydown", (e)=>{
+    if(e.key==="Enter"){ e.preventDefault(); calculate(); }
+  });
+
+  // Init
+  renderNameDatalist(saveNames(loadSavedNames().concat(people.map(p=>p.name))));
+  loadMode();
+  renderRows(null);
+
+  // PWA SW registration
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  }
+</script>
+</body>
+</html>
