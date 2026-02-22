@@ -274,8 +274,9 @@
         <label>Extra Money Option</label>
         <select id="extraMode">
           <option value="none">Do nothing (show unassigned $)</option>
-          <option value="random">Random</option>
-          <option value="tophours" selected>Top Hours (split ties)</option>
+          <option value="random">Random (equal chance)</option>
+          <option value="tophours">Top Hours (split ties)</option>
+          <option value="weighted" selected>Weighted Random ⭐ (hours = more tickets)</option>
         </select>
       </div>
     </div>
@@ -535,6 +536,24 @@
     return extras;
   }
 
+  // Weighted random: each eligible person gets "tickets" proportional to their hours.
+  // Each leftover $1 is awarded independently via a weighted draw (with replacement reset each round).
+  function allocateWeightedRandom(finalPay, hoursArr, eligibleIdxs, extras){
+    if(extras<=0||eligibleIdxs.length===0) return 0;
+    // Build a weighted ticket pool — scale to integers by multiplying hours * 2 (handles .5 increments)
+    const tickets = [];
+    for(const i of eligibleIdxs){
+      const count = Math.round(hoursArr[i] * 2); // e.g. 8.5hrs → 17 tickets
+      for(let t=0;t<count;t++) tickets.push(i);
+    }
+    // Award each extra dollar via an independent weighted draw
+    for(let k=0;k<extras;k++){
+      const winner = tickets[Math.floor(Math.random()*tickets.length)];
+      finalPay[winner]+=1;
+    }
+    return extras;
+  }
+
   function allocateTopHours(finalPay, hoursArr, eligibleIdxs, extras){
     if(extras<=0||eligibleIdxs.length===0) return 0;
     const maxH = Math.max(...eligibleIdxs.map(i=>hoursArr[i]));
@@ -578,8 +597,9 @@
       .filter(x=>toNum(x.p.hours)>0&&x.p.name.trim()!=="")
       .map(x=>x.i);
 
-    if(mode==="random")   allocateRandom(finalPay,eligibleIdxs,extras);
+    if(mode==="random")        allocateRandom(finalPay,eligibleIdxs,extras);
     else if(mode==="tophours") allocateTopHours(finalPay,hoursArr,eligibleIdxs,extras);
+    else if(mode==="weighted") allocateWeightedRandom(finalPay,hoursArr,eligibleIdxs,extras);
     // "none": extras stay unallocated, reflected in unassigned box
 
     const sumPay    = finalPay.reduce((a,b)=>a+b,0);
