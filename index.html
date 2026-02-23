@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0f1a" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <title>Tip Split</title>
 
   <style>
@@ -130,7 +132,7 @@
     /* Table */
     .table{ border-top:1px solid var(--line); }
     .thead, .trow{
-      display:grid; grid-template-columns:1fr 80px 90px;
+      display:grid; grid-template-columns:1fr 80px 90px 44px;
       gap:8px; padding:10px 12px; align-items:center;
     }
     .thead{
@@ -157,6 +159,28 @@
       font-size:15px; transition:opacity .2s;
     }
     .payPill.ready{ border-color:rgba(34,197,94,.28); box-shadow:0 0 0 3px rgba(34,197,94,.08); }
+
+    /* Paid checkbox */
+    .paidCheck{
+      width:40px; height:40px; border-radius:12px;
+      border:1px solid var(--line); background:rgba(7,10,18,.6);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; flex-shrink:0; touch-action:manipulation;
+      transition: background .15s, border-color .15s;
+      font-size:20px; user-select:none;
+    }
+    .paidCheck.checked{
+      background:rgba(34,197,94,.18);
+      border-color:rgba(34,197,94,.45);
+    }
+    /* Strike through name when paid */
+    .trow.paid .nameCell input{
+      text-decoration: line-through;
+      opacity: .45;
+    }
+    .trow.paid .payPill{
+      opacity: .45;
+    }
 
     /* Summary */
     .summary{
@@ -295,6 +319,7 @@
         <div>Name</div>
         <div>Hours</div>
         <div>Pay</div>
+        <div>✓</div>
       </div>
       <div id="rows"></div>
     </div>
@@ -305,6 +330,7 @@
       <div class="box"><div class="k">Sum of Payouts</div><div class="v" id="sumPay">$0</div></div>
       <div class="box"><div class="k">Unassigned $</div><div class="v" id="unassigned">$0</div></div>
       <div class="box wide"><div class="k">Status</div><div class="v" id="status"><span class="no">Waiting</span></div></div>
+      <div class="box wide"><div class="k">Payout Progress</div><div class="v" id="paidStatus">—</div></div>
     </div>
 
     <div id="copyRow" style="display:none;padding:0 14px 14px;">
@@ -442,7 +468,7 @@
     try{
       const arr = JSON.parse(localStorage.getItem(LS_PEOPLE)||"null");
       if(!Array.isArray(arr)) return [];
-      return arr.map(p=>({name:String(p.name??""),hours:toNum(p.hours)}));
+      return arr.map(p=>({name:String(p.name??""),hours:toNum(p.hours),paid:!!p.paid}));
     }catch{return[];}
   }
   function savePeople(){ localStorage.setItem(LS_PEOPLE,JSON.stringify(people)); }
@@ -519,11 +545,37 @@
       payPill.className = "payPill"+(finalPays?" ready":"");
       payPill.textContent = finalPays ? money0(finalPays[i]??0) : "—";
 
+      // Paid checkbox
+      const paidBtn = document.createElement("div");
+      paidBtn.className = "paidCheck"+(p.paid?" checked":"");
+      paidBtn.title = p.paid ? "Mark unpaid" : "Mark paid";
+      paidBtn.textContent = p.paid ? "✓" : "";
+      paidBtn.addEventListener("click",()=>{
+        people[i].paid = !people[i].paid;
+        savePeople();
+        renderRows(finalPays);
+      });
+
+      if(p.paid) row.classList.add("paid");
+
       row.appendChild(nameCell);
       row.appendChild(hoursInput);
       row.appendChild(payPill);
+      row.appendChild(paidBtn);
       container.appendChild(row);
     });
+
+    // Update paid progress
+    const paidCount = people.filter(p=>p.paid).length;
+    const total = people.length;
+    const ps = $("paidStatus");
+    if(total===0){
+      ps.innerHTML = "—";
+    }else if(paidCount===total){
+      ps.innerHTML = `<span class="ok">✓ All ${total} paid out!</span>`;
+    }else{
+      ps.innerHTML = `<span style="color:var(--warn)">${paidCount} / ${total} paid out</span>`;
+    }
   }
 
   // ── Extra money strategies ────────────────────────────────────────────────
@@ -661,7 +713,7 @@
     if(!valid){ showToast("Enter a name and hours first"); return; }
     if(people.length>=MAX_PEOPLE){ showToast(`Max ${MAX_PEOPLE} people reached`); return; }
 
-    people.push({name:n, hours:h});
+    people.push({name:n, hours:h, paid:false});
     addNameToSaved(n);
     savePeople();
     markDirty();
