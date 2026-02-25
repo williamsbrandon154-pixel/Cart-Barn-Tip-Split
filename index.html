@@ -260,6 +260,51 @@
     }
     .dangerZone p{ margin:0 0 10px; font-size:13px; color:rgba(255,200,210,.85); line-height:1.4; }
     .dangerZone button{ width:100%; }
+
+    /* ── Spin Wheel ── */
+    .wheelModal{
+      position:fixed; inset:0; background:rgba(0,0,0,.8);
+      display:none; align-items:center; justify-content:center;
+      z-index:999; padding:16px;
+    }
+    .wheelCard{
+      width:100%; max-width:420px;
+      border-radius:24px; border:1px solid var(--line);
+      background:rgba(10,14,28,.97); box-shadow:var(--shadow);
+      padding:20px; display:flex; flex-direction:column; align-items:center; gap:16px;
+    }
+    .wheelHead{
+      width:100%; display:flex; align-items:center; justify-content:space-between;
+    }
+    .wheelTitle{ margin:0; font-size:17px; font-weight:700; }
+    .wheelWrap{
+      position:relative; width:min(320px, calc(100vw - 80px));
+      height:min(320px, calc(100vw - 80px));
+      flex-shrink:0;
+    }
+    #wheelCanvas{
+      width:100%; height:100%; border-radius:50%;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.08), 0 8px 32px rgba(0,0,0,.5);
+    }
+    /* Pointer triangle */
+    .wheelPointer{
+      position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+      width:0; height:0;
+      border-left:12px solid transparent;
+      border-right:12px solid transparent;
+      border-top:22px solid #f59e0b;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.5));
+      z-index:2;
+    }
+    .wheelResult{
+      min-height:52px; text-align:center;
+      font-size:22px; font-weight:900; letter-spacing:.2px;
+      color:var(--good);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .wheelResult.empty{ color:var(--muted); font-size:14px; font-weight:600; }
+    .wheelActions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
+    .wheelActions button{ width:100%; }
   </style>
 </head>
 
@@ -291,7 +336,10 @@
         </div>
         <div>
           <label>Hours</label>
-          <input id="quickHours" inputmode="decimal" placeholder="8.5" autocomplete="off" />
+          <div style="display:flex; gap:8px;">
+            <input id="quickHours" inputmode="decimal" placeholder="8.5" autocomplete="off" />
+            <button class="ghost" id="addBtn" style="flex-shrink:0; width:52px; padding:0; font-size:22px;">＋</button>
+          </div>
         </div>
       </div>
       <div>
@@ -301,13 +349,13 @@
           <option value="random">Random (equal chance)</option>
           <option value="tophours">Top Hours (split ties)</option>
           <option value="weighted" selected>Weighted Random ⭐ (hours = more tickets)</option>
+          <option value="wheel">🎡 Spin the Wheel (spin per dollar)</option>
         </select>
       </div>
     </div>
 
     <div class="btnRow">
       <button class="primary" id="calcBtn">Calculate</button>
-      <button class="ghost"   id="addBtn">＋ Add Person</button>
       <button class="ghost"   id="manageNamesBtn">Manage Names</button>
       <button class="danger"  id="resetBtn">Reset…</button>
     </div>
@@ -362,7 +410,24 @@
   </div>
 </div>
 
-<!-- Reset sheet -->
+<!-- Spin Wheel Modal -->
+<div class="wheelModal" id="wheelModal" aria-hidden="true">
+  <div class="wheelCard" role="dialog" aria-modal="true" aria-label="Spin the Wheel">
+    <div class="wheelHead">
+      <h3 class="wheelTitle">🎡 Spin the Wheel</h3>
+      <button class="iconBtn" id="closeWheelBtn">×</button>
+    </div>
+    <div class="wheelWrap">
+      <div class="wheelPointer"></div>
+      <canvas id="wheelCanvas" width="600" height="600"></canvas>
+    </div>
+    <div class="wheelResult empty" id="wheelResult">Add people to spin!</div>
+    <div class="wheelActions">
+      <button class="primary" id="spinBtn">🎰 Spin!</button>
+      <button class="ghost"   id="closeWheelBtn2">Done</button>
+    </div>
+  </div>
+</div>
 <div class="modal" id="resetModal" aria-hidden="true">
   <div class="modalCard" role="dialog" aria-modal="true" aria-label="Reset">
     <div class="sheetHandle"></div>
@@ -652,6 +717,24 @@
     if(mode==="random")        allocateRandom(finalPay,eligibleIdxs,extras);
     else if(mode==="tophours") allocateTopHours(finalPay,hoursArr,eligibleIdxs,extras);
     else if(mode==="weighted") allocateWeightedRandom(finalPay,hoursArr,eligibleIdxs,extras);
+    else if(mode==="wheel"){
+      // Don't auto-assign — open the wheel so user spins for each leftover dollar
+      if(extras > 0){
+        const sumPayBase = finalPay.reduce((a,b)=>a+b,0);
+        calculated=true; _lastFinalPay=finalPay.slice(); _lastTotalTips=totalTips;
+        markClean(); renderRows(finalPay);
+        $("copyRow").style.display="block";
+        $("sumHours").textContent = sumHours.toFixed(1).replace(/\.0$/,"");
+        $("sumPay").textContent   = money0(sumPayBase);
+        $("rate").textContent     = money2(rate);
+        $("unassigned").textContent = money0(extras);
+        $("status").innerHTML = `<span style="color:var(--warn)">🎡 ${extras} dollar${extras>1?"s":""} to assign — spin the wheel!</span>`;
+        people.forEach(p=>{ if(p.name.trim()) addNameToSaved(p.name); });
+        openWheelForExtras(finalPay, eligibleIdxs, extras, totalTips);
+        return;
+      }
+      // extras === 0, nothing to spin for — fall through to normal completion
+    }
     // "none": extras stay unallocated, reflected in unassigned box
 
     const sumPay    = finalPay.reduce((a,b)=>a+b,0);
@@ -726,10 +809,10 @@
   function openModal(id){ const m=$(id); m.style.display="flex"; m.setAttribute("aria-hidden","false"); }
   function closeModal(id){ const m=$(id); m.style.display="none"; m.setAttribute("aria-hidden","true"); }
 
-  ["namesModal","resetModal"].forEach(id=>{
+  ["namesModal","resetModal","wheelModal"].forEach(id=>{
     $(id).addEventListener("click",e=>{ if(e.target.id===id) closeModal(id); });
   });
-  window.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closeModal("namesModal"); closeModal("resetModal"); } });
+  window.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closeModal("namesModal"); closeModal("resetModal"); closeModal("wheelModal"); } });
 
   // Manage Names
   function openNamesModal(){
@@ -790,8 +873,262 @@
   $("quickHours").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addPerson(); } });
   $("totalTips").addEventListener("keydown",  e=>{ if(e.key==="Enter"){ e.preventDefault(); calculate(); } });
 
-  // Init
-  renderNameDatalist(loadSavedNames());
+  // ── Spin Wheel ────────────────────────────────────────────────────────────
+  const WHEEL_COLORS = [
+    "#3b82f6","#22c55e","#f59e0b","#ec4899","#8b5cf6",
+    "#06b6d4","#f97316","#84cc16","#e11d48","#0ea5e9",
+    "#a78bfa","#34d399","#fbbf24","#f472b6","#60a5fa",
+  ];
+
+  let wheelSpinning = false;
+  let wheelAngle = 0; // current rotation in radians
+
+  function getWheelEntries(){
+    // Use current people list. Each person gets weight by hours (min 1 slice).
+    if(people.length === 0) return [];
+    return people.map((p,i)=>({
+      label: p.name.trim() || `Person ${i+1}`,
+      weight: Math.max(toNum(p.hours), 0.5),
+      color: WHEEL_COLORS[i % WHEEL_COLORS.length],
+    }));
+  }
+
+  function drawWheel(angle){
+    const canvas = $("wheelCanvas");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    const cx = W/2, cy = H/2, r = W/2 - 4;
+    const entries = getWheelEntries();
+
+    ctx.clearRect(0,0,W,H);
+
+    if(entries.length === 0){
+      ctx.fillStyle = "rgba(255,255,255,.08)";
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "rgba(238,242,255,.4)";
+      ctx.font = "bold 28px -apple-system, system-ui, sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("No people yet", cx, cy);
+      return;
+    }
+
+    const totalWeight = entries.reduce((a,e)=>a+e.weight, 0);
+    let startAngle = angle;
+
+    entries.forEach((entry, i)=>{
+      const sliceAngle = (entry.weight / totalWeight) * Math.PI * 2;
+      const endAngle = startAngle + sliceAngle;
+
+      // Slice fill
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = entry.color;
+      ctx.fill();
+
+      // Subtle border between slices
+      ctx.strokeStyle = "rgba(0,0,0,.35)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Label
+      const midAngle = startAngle + sliceAngle / 2;
+      const labelR = r * 0.65;
+      const lx = cx + Math.cos(midAngle) * labelR;
+      const ly = cy + Math.sin(midAngle) * labelR;
+
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(midAngle + Math.PI/2);
+
+      // Font size scales down for many slices
+      const fs = Math.max(11, Math.min(22, Math.floor(260 / entries.length)));
+      ctx.font = `bold ${fs}px -apple-system, system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      // Shadow for readability
+      ctx.shadowColor = "rgba(0,0,0,.7)";
+      ctx.shadowBlur = 4;
+      ctx.fillStyle = "#fff";
+
+      // Truncate long names
+      let label = entry.label;
+      if(ctx.measureText(label).width > r*0.55) {
+        while(label.length > 3 && ctx.measureText(label+"…").width > r*0.55)
+          label = label.slice(0,-1);
+        label += "…";
+      }
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+
+      startAngle = endAngle;
+    });
+
+    // Center cap
+    ctx.beginPath();
+    ctx.arc(cx, cy, 22, 0, Math.PI*2);
+    ctx.fillStyle = "rgba(10,14,28,.9)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.15)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function getWinnerAtAngle(angle){
+    const entries = getWheelEntries();
+    if(entries.length === 0) return null;
+    const totalWeight = entries.reduce((a,e)=>a+e.weight,0);
+
+    // Pointer is at the top (270deg = -PI/2).
+    // We find which slice is at that position given current angle.
+    let ptr = ((-angle % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+    // Offset by 270deg since wheel starts drawing at angle offset
+    ptr = (ptr + Math.PI*1.5) % (Math.PI*2);
+
+    let cumulative = 0;
+    for(const entry of entries){
+      cumulative += (entry.weight/totalWeight)*Math.PI*2;
+      if(ptr < cumulative) return entry.label;
+    }
+    return entries[entries.length-1].label;
+  }
+
+  function spinWheel(){
+    if(wheelSpinning) return;
+    const entries = getWheelEntries();
+    if(entries.length === 0){ showToast("Add people first!"); return; }
+
+    $("wheelResult").className = "wheelResult empty";
+    $("wheelResult").textContent = "Spinning…";
+    $("spinBtn").disabled = true;
+    wheelSpinning = true;
+
+    // Random spin: 5–10 full rotations + random landing
+    const extraSpins = (5 + Math.random()*5) * Math.PI*2;
+    const landingOffset = Math.random() * Math.PI*2;
+    const targetAngle = wheelAngle + extraSpins + landingOffset;
+
+    const duration = 4000 + Math.random()*1500; // 4–5.5s
+    const startAngle = wheelAngle;
+    const startTime = performance.now();
+
+    function easeOut(t){ return 1 - Math.pow(1-t, 4); } // quartic ease-out
+
+    function frame(now){
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed/duration, 1);
+      wheelAngle = startAngle + (targetAngle - startAngle) * easeOut(t);
+      drawWheel(wheelAngle);
+
+      if(t < 1){
+        requestAnimationFrame(frame);
+      } else {
+        wheelAngle = targetAngle;
+        wheelSpinning = false;
+        $("spinBtn").disabled = false;
+
+      const winner = getWinnerAtAngle(wheelAngle);
+        const resultEl = $("wheelResult");
+
+        // If we're in extras-assign mode, award $1 to the winner
+        if(_wheelExtrasState && _wheelExtrasState.remaining > 0){
+          // Find matching person index
+          const winnerIdx = people.findIndex((p,i)=>{
+            const label = p.name.trim()||`Person ${i+1}`;
+            return label === winner && _wheelExtrasState.eligibleIdxs.includes(i);
+          });
+          if(winnerIdx !== -1){
+            _wheelExtrasState.finalPay[winnerIdx] += 1;
+            _wheelExtrasState.remaining -= 1;
+            // Update the live table so they see pay climbing
+            renderRows(_wheelExtrasState.finalPay);
+            $("unassigned").textContent = money0(_wheelExtrasState.remaining);
+          }
+          resultEl.className = "wheelResult";
+          resultEl.textContent = `🎉 ${winner} gets $1!`;
+          showToast(`🎉 ${winner} gets $1!`, 2000);
+          setTimeout(()=>updateWheelExtrasUI(), 1200);
+        } else {
+          // Normal freeplay spin
+          resultEl.className = "wheelResult";
+          resultEl.textContent = `🎉 ${winner}!`;
+          showToast(`🎉 ${winner} wins!`, 3000);
+        }
+      }
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  // ── Wheel in "assign extras" mode ────────────────────────────────────────
+  // Called from calculate() when mode===wheel and extras > 0.
+  // Tracks remaining dollars and awards them one spin at a time.
+  let _wheelExtrasState = null; // { finalPay, eligibleIdxs, remaining, totalTips }
+
+  function openWheelForExtras(finalPay, eligibleIdxs, extras, totalTips){
+    _wheelExtrasState = {
+      finalPay: finalPay.slice(),
+      eligibleIdxs,
+      remaining: extras,
+      totalTips,
+    };
+    openModal("wheelModal");
+    updateWheelExtrasUI();
+    drawWheel(wheelAngle);
+  }
+
+  function updateWheelExtrasUI(){
+    const s = _wheelExtrasState;
+    if(!s){ return; }
+    const resultEl = $("wheelResult");
+    if(s.remaining > 0){
+      resultEl.className = "wheelResult empty";
+      resultEl.textContent = `${s.remaining} dollar${s.remaining>1?"s":""} left to spin for!`;
+      $("spinBtn").textContent = `🎰 Spin for $1!`;
+    } else {
+      resultEl.className = "wheelResult";
+      resultEl.textContent = "🎉 All dollars assigned!";
+      $("spinBtn").textContent = "🎰 Spin!";
+      $("spinBtn").disabled = false;
+      // Commit final pay back
+      _lastFinalPay = s.finalPay.slice();
+      renderRows(s.finalPay);
+      const sumPay = s.finalPay.reduce((a,b)=>a+b,0);
+      $("sumPay").textContent = money0(sumPay);
+      $("unassigned").textContent = "$0";
+      $("status").innerHTML = `<span class="ok">✓ Perfect — ${money0(s.totalTips)} fully assigned</span>`;
+      $("copyRow").style.display = "block";
+      _wheelExtrasState = null;
+    }
+  }
+
+  function openWheelModal(){
+    openModal("wheelModal");
+    $("wheelResult").className = "wheelResult empty";
+    $("wheelResult").textContent = people.length===0 ? "Add people to spin!" : "Tap Spin!";
+    drawWheel(wheelAngle);
+  }
+
+  $("spinBtn").onclick       = spinWheel;
+  $("calcBtn").onclick       = calculate;
+  $("addBtn").onclick        = addPerson;
+  $("closeWheelBtn").onclick = ()=>{ _wheelExtrasState=null; closeModal("wheelModal"); };
+  $("closeWheelBtn2").onclick= ()=>{ _wheelExtrasState=null; closeModal("wheelModal"); };
+  $("wheelModal").addEventListener("click", e=>{ if(e.target.id==="wheelModal"){ _wheelExtrasState=null; closeModal("wheelModal"); } });
+
+  // Re-draw wheel if it's open when people change
+  const _origRenderRows = renderRows;
+
+  // Also update Escape key handler to include wheel
+  window.removeEventListener("keydown", window._escHandler);
+  window._escHandler = e=>{
+    if(e.key==="Escape"){
+      closeModal("namesModal"); closeModal("resetModal"); closeModal("wheelModal");
+    }
+  };
+  window.addEventListener("keydown", window._escHandler);
   loadMode();
   renderRows(null);
 
