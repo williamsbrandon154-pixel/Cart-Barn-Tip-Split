@@ -1,4 +1,5 @@
 <!doctype html>
+
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -324,6 +325,7 @@
     .wheelActions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
     .wheelActions button{ width:100%; }
   </style>
+
 </head>
 
 <body>
@@ -374,47 +376,51 @@
       </div>
     </div>
 
-    <div class="btnRow">
-      <button class="primary" id="calcBtn">Calculate</button>
-      <button class="ghost"   id="manageNamesBtn">Manage Names</button>
-      <button class="danger"  id="resetBtn">Reset…</button>
-    </div>
+```
+<div class="btnRow">
+  <button class="primary" id="calcBtn">Calculate</button>
+  <button class="ghost"   id="manageNamesBtn">Manage Names</button>
+  <button class="danger"  id="resetBtn">Reset…</button>
+</div>
 
-    <div class="recalcBanner" id="recalcBanner">⚠️ Data changed — tap Calculate to update</div>
+<div class="recalcBanner" id="recalcBanner">⚠️ Data changed — tap Calculate to update</div>
 
-    <div class="table" id="tableWrap">
-      <div class="thead">
-        <div>Name</div>
-        <div>Hours</div>
-        <div>Pay</div>
-        <div>✓</div>
-      </div>
-      <div id="rows"></div>
-    </div>
+<div class="table" id="tableWrap">
+  <div class="thead">
+    <div>Name</div>
+    <div>Hours</div>
+    <div>Pay</div>
+    <div>✓</div>
+  </div>
+  <div id="rows"></div>
+</div>
 
-    <div class="summary">
-      <div class="box"><div class="k">Total Hours</div><div class="v" id="sumHours">0</div></div>
-      <div class="box"><div class="k">Rate ($/hr)</div><div class="v" id="rate">$0.00</div></div>
-      <div class="box"><div class="k">Sum of Payouts</div><div class="v" id="sumPay">$0</div></div>
-      <div class="box"><div class="k">Unassigned $</div><div class="v" id="unassigned">$0</div></div>
-      <div class="box wide"><div class="k">Status</div><div class="v" id="status"><span class="no">Waiting</span></div></div>
-      <div class="box"><div class="k">Payout Progress</div><div class="v" id="paidStatus">—</div></div>
-      <div class="box"><div class="k">$ Left to Pay Out</div><div class="v" id="leftToPay">—</div></div>
-    </div>
+<div class="summary">
+  <div class="box"><div class="k">Total Hours</div><div class="v" id="sumHours">0</div></div>
+  <div class="box"><div class="k">Rate ($/hr)</div><div class="v" id="rate">$0.00</div></div>
+  <div class="box"><div class="k">Sum of Payouts</div><div class="v" id="sumPay">$0</div></div>
+  <div class="box"><div class="k">Unassigned $</div><div class="v" id="unassigned">$0</div></div>
+  <div class="box wide"><div class="k">Status</div><div class="v" id="status"><span class="no">Waiting</span></div></div>
+  <div class="box"><div class="k">Payout Progress</div><div class="v" id="paidStatus">—</div></div>
+  <div class="box"><div class="k">$ Left to Pay Out</div><div class="v" id="leftToPay">—</div></div>
+</div>
 
-    <div id="copyRow" style="display:none;padding:0 14px 14px;">
-      <button class="copy-btn" id="copyBtn" style="width:100%;">📋 Copy Results to Clipboard</button>
-    </div>
+<div id="copyRow" style="display:none;padding:0 14px 14px;">
+  <button class="copy-btn" id="copyBtn" style="width:100%;">📋 Copy Results to Clipboard</button>
+</div>
 
-    <div class="foot">
-      Type name → tap Hours → <span class="kbd">＋ Add Person</span>. Names save automatically. Max 50 people.
-    </div>
+<div class="foot">
+  Type name → tap Hours → <span class="kbd">＋ Add Person</span>. Names save automatically. Max 50 people.
+</div>
+```
+
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <!-- Manage Names sheet -->
+
 <div class="modal" id="namesModal" aria-hidden="true">
   <div class="modalCard" role="dialog" aria-modal="true" aria-label="Manage Names">
     <div class="sheetHandle"></div>
@@ -432,6 +438,7 @@
 </div>
 
 <!-- Spin Wheel Modal -->
+
 <div class="wheelModal" id="wheelModal" aria-hidden="true">
   <div class="wheelCard" role="dialog" aria-modal="true" aria-label="Spin the Wheel">
     <div class="wheelHead">
@@ -562,13 +569,19 @@
       item.className = "acItem";
       item.textContent = name;
       item.addEventListener("mousedown", e => {
-        e.preventDefault(); // prevent blur firing before tap registers
+        e.preventDefault();
         $("quickName").value = name;
         dropdown.classList.remove("open");
         $("quickHours").focus();
       });
-      // touchstart for iOS responsiveness
+      // iOS: only select if finger didn't move (tap, not scroll)
+      let _touchStartY = 0;
       item.addEventListener("touchstart", e => {
+        _touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      item.addEventListener("touchend", e => {
+        const dy = Math.abs(e.changedTouches[0].clientY - _touchStartY);
+        if(dy > 10) return; // was a scroll, ignore
         e.preventDefault();
         $("quickName").value = name;
         dropdown.classList.remove("open");
@@ -1214,5 +1227,6 @@
     window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
   }
 </script>
+
 </body>
 </html>
