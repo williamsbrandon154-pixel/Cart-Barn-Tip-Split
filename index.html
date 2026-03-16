@@ -217,6 +217,24 @@
       border-radius:999px; background:rgba(7,10,18,.45); color:rgba(238,242,255,.85);
     }
 
+    /* Custom autocomplete dropdown (replaces unreliable datalist on iOS) */
+    .acWrap{ position:relative; }
+    .acDropdown{
+      position:absolute; top:calc(100% + 6px); left:0; right:0;
+      background:rgba(15,21,38,.98); border:1px solid rgba(59,130,246,.4);
+      border-radius:14px; z-index:200; overflow:hidden;
+      box-shadow:0 8px 24px rgba(0,0,0,.5);
+      display:none;
+    }
+    .acDropdown.open{ display:block; }
+    .acItem{
+      padding:14px 16px; font-size:16px; font-weight:600;
+      color:var(--text); cursor:pointer; border-bottom:1px solid var(--line);
+      touch-action:manipulation;
+    }
+    .acItem:last-child{ border-bottom:none; }
+    .acItem:active{ background:rgba(59,130,246,.2); }
+
     /* Modals / Bottom sheets */
     .modal{
       position:fixed; inset:0; background:rgba(0,0,0,.65);
@@ -331,8 +349,10 @@
       <div class="gridRow2">
         <div>
           <label>Name</label>
-          <input id="quickName" list="nameSuggestions" placeholder="Name…" autocomplete="off" />
-          <datalist id="nameSuggestions"></datalist>
+          <div class="acWrap">
+            <input id="quickName" placeholder="Name…" autocomplete="off" autocorrect="off" autocapitalize="words" />
+            <div class="acDropdown" id="acDropdown"></div>
+          </div>
         </div>
         <div>
           <label>Hours</label>
@@ -378,7 +398,8 @@
       <div class="box"><div class="k">Sum of Payouts</div><div class="v" id="sumPay">$0</div></div>
       <div class="box"><div class="k">Unassigned $</div><div class="v" id="unassigned">$0</div></div>
       <div class="box wide"><div class="k">Status</div><div class="v" id="status"><span class="no">Waiting</span></div></div>
-      <div class="box wide"><div class="k">Payout Progress</div><div class="v" id="paidStatus">—</div></div>
+      <div class="box"><div class="k">Payout Progress</div><div class="v" id="paidStatus">—</div></div>
+      <div class="box"><div class="k">$ Left to Pay Out</div><div class="v" id="leftToPay">—</div></div>
     </div>
 
     <div id="copyRow" style="display:none;padding:0 14px 14px;">
@@ -451,6 +472,7 @@
   const LS_NAMES  = "tipSplit_savedNames_v2";
   const LS_PEOPLE = "tipSplit_people_v2";
   const LS_MODE   = "tipSplit_extraMode_v2";
+  const LS_TIPS   = "tipSplit_totalTips_v2";
   const MAX_PEOPLE = 50;
 
   const $ = id => document.getElementById(id);
@@ -519,14 +541,49 @@
     renderNameDatalist([]);
   }
   function renderNameDatalist(names){
-    const dl = $("nameSuggestions");
-    dl.innerHTML = "";
-    names.forEach(n=>{
-      const opt = document.createElement("option");
-      opt.value = n;
-      dl.appendChild(opt);
-    });
+    // No-op — we use custom dropdown instead of datalist (unreliable on iOS)
   }
+
+  // ── Custom autocomplete for iOS ───────────────────────────────────────────
+  function buildAcDropdown(query){
+    const dropdown = $("acDropdown");
+    if(!dropdown) return;
+    const names = loadSavedNames();
+    const q = query.trim().toLowerCase();
+    const matches = q === ""
+      ? names.slice(0, 8)
+      : names.filter(n => n.toLowerCase().startsWith(q)).slice(0, 8);
+
+    if(matches.length === 0){ dropdown.classList.remove("open"); return; }
+
+    dropdown.innerHTML = "";
+    matches.forEach(name => {
+      const item = document.createElement("div");
+      item.className = "acItem";
+      item.textContent = name;
+      item.addEventListener("mousedown", e => {
+        e.preventDefault(); // prevent blur firing before tap registers
+        $("quickName").value = name;
+        dropdown.classList.remove("open");
+        $("quickHours").focus();
+      });
+      // touchstart for iOS responsiveness
+      item.addEventListener("touchstart", e => {
+        e.preventDefault();
+        $("quickName").value = name;
+        dropdown.classList.remove("open");
+        $("quickHours").focus();
+      }, { passive: false });
+      dropdown.appendChild(item);
+    });
+    dropdown.classList.add("open");
+  }
+
+  $("quickName").addEventListener("input",  e => buildAcDropdown(e.target.value));
+  $("quickName").addEventListener("focus",  e => buildAcDropdown(e.target.value));
+  $("quickName").addEventListener("blur",   () => {
+    setTimeout(() => $("acDropdown").classList.remove("open"), 200);
+  });
 
   // ── People ────────────────────────────────────────────────────────────────
   function loadPeople(){
@@ -549,6 +606,7 @@
     if(!calculated) return;
     $("tableWrap").classList.add("pillsStale");
     $("recalcBanner").classList.add("show");
+    $("status").innerHTML = `<span class="no">Waiting — tap Calculate to update</span>`;
   }
   function markClean(){
     $("tableWrap").classList.remove("pillsStale");
@@ -579,7 +637,6 @@
 
       const nameInput = document.createElement("input");
       nameInput.value = p.name;
-      nameInput.setAttribute("list","nameSuggestions");
       nameInput.placeholder = "Name";
       nameInput.autocomplete = "off";
       nameInput.addEventListener("input",e=>{
@@ -634,12 +691,23 @@
     const paidCount = people.filter(p=>p.paid).length;
     const total = people.length;
     const ps = $("paidStatus");
+    const lp = $("leftToPay");
+
     if(total===0){
       ps.innerHTML = "—";
+      lp.innerHTML = "—";
     }else if(paidCount===total){
       ps.innerHTML = `<span class="ok">✓ All ${total} paid out!</span>`;
+      lp.innerHTML = `<span class="ok">$0</span>`;
     }else{
       ps.innerHTML = `<span style="color:var(--warn)">${paidCount} / ${total} paid out</span>`;
+      // Sum pay of unpaid people
+      if(finalPays){
+        const unpaidTotal = people.reduce((sum, p, i) => p.paid ? sum : sum + (finalPays[i] ?? 0), 0);
+        lp.innerHTML = `<span style="color:var(--warn)">${money0(unpaidTotal)}</span>`;
+      } else {
+        lp.innerHTML = "—";
+      }
     }
   }
 
@@ -848,7 +916,7 @@
   function doReset(clearTips){
     people=[]; savePeople(); calculated=false; _lastFinalPay=null;
     markClean();
-    if(clearTips) $("totalTips").value="";
+    if(clearTips){ $("totalTips").value=""; localStorage.removeItem(LS_TIPS); }
     $("copyRow").style.display="none";
     $("sumHours").textContent="0"; $("sumPay").textContent="$0";
     $("rate").textContent="$0.00"; $("unassigned").textContent="$0";
@@ -862,6 +930,15 @@
   // Extra mode persistence
   function loadMode(){ const m=localStorage.getItem(LS_MODE); if(m) $("extraMode").value=m; }
   $("extraMode").addEventListener("change",()=>{ localStorage.setItem(LS_MODE,$("extraMode").value); markDirty(); });
+
+  // Tip total persistence
+  $("totalTips").addEventListener("input", ()=>{
+    localStorage.setItem(LS_TIPS, $("totalTips").value);
+  });
+  function loadTips(){
+    const t = localStorage.getItem(LS_TIPS);
+    if(t) $("totalTips").value = t;
+  }
 
   // Buttons
   $("calcBtn").onclick = calculate;
@@ -1130,6 +1207,7 @@
   };
   window.addEventListener("keydown", window._escHandler);
   loadMode();
+  loadTips();
   renderRows(null);
 
   if("serviceWorker" in navigator){
